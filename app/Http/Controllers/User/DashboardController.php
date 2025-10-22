@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Controllers\User;
+
+use App\Http\Controllers\Controller;
+use App\Models\Absensi;
+use Illuminate\Http\Request;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        // Get the authenticated user
+        $user = auth()->user();
+        
+        // Get today's attendance record if exists
+        $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
+        
+        // Get last 7 days of attendance records
+        $attendanceHistory = $user->absensis()
+            ->where('tanggal', '>=', date('Y-m-d', strtotime('-7 days')))
+            ->orderBy('tanggal', 'desc')
+            ->get();
+        
+        // Check if user has leave permission for today
+        $todayIzin = $user->izins()->where('tanggal', date('Y-m-d'))->first();
+        
+        return inertia('User/Dashboard', [
+            'user' => $user,
+            'todayAttendance' => $todayAttendance,
+            'todayIzin' => $todayIzin,
+            'attendanceHistory' => $attendanceHistory,
+        ]);
+    }
+}

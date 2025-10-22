@@ -1,0 +1,52 @@
+Logika Absensi yang Telah Diterapkan
+1. Validasi Lokasi (Geofencing)
+    Sistem menggunakan formula Haversine untuk menghitung jarak antara lokasi pengguna dan lokasi kantor
+    Pengguna harus berada dalam radius tertentu (default 50 meter) dari lokasi kantor untuk bisa melakukan absensi
+    Jika pengguna berada di luar radius, sistem akan menampilkan peringatan dan mencegah proses absensi
+2. Validasi Jam Kerja
+    Terdapat pengaturan jam masuk dan jam pulang yang bisa dikonfigurasi
+    Absensi hanya bisa dilakukan dalam rentang waktu tertentu:
+    Check-in: Dari jam masuk hingga 1 jam setelah jam pulang
+    Check-out: Setelah jam masuk hingga akhir hari
+    Jika absensi dilakukan di luar jam kerja, pengguna akan ditandai sebagai "alpha" (tidak hadir)
+3. Deteksi Keterlambatan
+    Sistem membandingkan waktu check-in dengan jam masuk yang ditentukan
+    Jika pengguna check-in setelah jam masuk, mereka dianggap terlambat
+    Pengguna terlambat diminta memberikan keterangan keterlambatan
+4. Sistem Izin
+    Disediakan dua jenis izin:
+    Izin Penuh: Pengguna tidak perlu melakukan absensi sama sekali
+    Izin Parsial: Pengguna hanya perlu melakukan check-in, tidak wajib check-out
+    Izin harus diajukan sebelum absensi dan divalidasi oleh sistem
+5. Pencegahan Absensi Ganda
+    Pengguna tidak bisa melakukan check-in berkali-kali dalam satu hari
+    Setelah check-out, pengguna tidak bisa melakukan check-in lagi pada hari yang sama
+    Sistem memeriksa record absensi harian sebelum memproses absensi baru
+6. Penandaan Otomatis Pegawai Tidak Hadir (Alpha)
+    Terdapat perintah console untuk menandai pegawai yang tidak melakukan absensi:
+    Jika tidak ada aktivitas absensi sama sekali → ditandai alpha
+    Jika hanya check-in tanpa check-out (dan bukan izin parsial) → ditandai alpha
+    Jika hanya check-out tanpa check-in → ditandai alpha
+    Perintah ini bisa dijalankan secara otomatis untuk memastikan semua pegawai yang tidak hadir ditandai
+7. Validasi Otomatis Lokasi
+    Saat pengguna mengakses halaman absensi, lokasi mereka dideteksi secara otomatis
+    Lokasi digunakan untuk validasi geofencing saat check-in/check-out
+    Sistem selalu mengambil lokasi terbaru saat proses absensi dilakukan
+8. Status Absensi Lengkap
+    Sistem mencatat berbagai status absensi:
+    Hadir: Check-in dan check-out tepat waktu
+    Terlambat: Check-in setelah jam masuk dengan keterangan
+    Izin (Valid): Izin penuh yang disetujui
+    Izin Parsial: Izin parsial dengan check-in
+    Alpha: Tidak hadir/tidak melakukan absensi
+9. Validasi Peran Pengguna
+    Hanya pengguna dengan role "user" yang bisa melakukan absensi
+    Admin dan superadmin memiliki akses berbeda untuk mengelola sistem
+10. Notifikasi dan Feedback
+    Sistem memberikan notifikasi yang jelas untuk setiap kondisi:
+    Sukses absensi
+    Kesalahan validasi
+    Peringatan lokasi/radius
+    Peringatan jam kerja
+    Informasi izin
+    Logika ini memastikan bahwa absensi dilakukan secara akurat dengan mempertimbangkan faktor lokasi, waktu, dan status izin pengguna.
