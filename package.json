@@ -23,6 +23,7 @@
         "@headlessui/vue": "^1.7.23",
         "apexcharts": "^5.3.5",
         "leaflet": "^1.9.4",
+        "lodash": "^4.17.21",
         "lucide-vue-next": "^0.546.0",
         "sweetalert2": "^11.26.3",
         "vue3-apexcharts": "^1.9.0",

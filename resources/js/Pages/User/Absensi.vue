@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen h-screen bg-[#F8F9FA]">
+  <div class="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Sidebar -->
     <Sidebar 
       :sidebar-open="sidebarOpen"
@@ -18,244 +18,299 @@
       />
 
       <!-- Page Content -->
-      <main class="pt-16 p-4 sm:p-6 md:p-8">
+      <main class="pt-16 p-4 sm:p-6">
         <div class="max-w-5xl mx-auto">
           <!-- Header Section -->
-          <div class="mb-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-[#111827]">Absensi Hari Ini</h1>
-            <p class="text-gray-600 mt-1">{{ currentDate }}</p>
+          <div class="mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Absensi Hari Ini</h1>
+            <p class="text-gray-600 mt-2">{{ currentDate }}</p>
+          </div>
+
+          <!-- Temporary Testing Toggle - Only visible in development/testing -->
+          <div v-if="isDevelopmentMode" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <AlertTriangleIcon class="h-5 w-5 text-yellow-600 mr-2" />
+                <span class="text-yellow-800 font-medium">Mode Testing</span>
+              </div>
+              <div class="flex items-center">
+                <span class="text-sm text-yellow-700 mr-3">Nonaktifkan Radius Lokasi</span>
+                <button 
+                  @click="toggleLocationValidation"
+                  :class="locationValidationDisabled ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 hover:bg-gray-400'"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
+                >
+                  <span 
+                    :class="locationValidationDisabled ? 'translate-x-6' : 'translate-x-1'"
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  />
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-yellow-600 mt-2">Tombol ini hanya tersedia untuk tujuan testing dan akan dihapus dalam produksi.</p>
           </div>
 
           <!-- Success/Error Messages -->
-          <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
-            {{ $page.props.flash.success }}
+          <div v-if="$page.props.flash && $page.props.flash.success" class="mb-6 p-5 bg-green-50 text-green-700 rounded-2xl border border-green-100 transition-all duration-300 shadow-md">
+            <div class="flex items-center">
+              <CheckCircleIcon class="h-6 w-6 mr-3 flex-shrink-0" />
+              <span class="font-medium">{{ $page.props.flash.success }}</span>
+            </div>
           </div>
-          <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-            {{ $page.props.flash.error }}
+          <div v-if="$page.props.flash && $page.props.flash.error" class="mb-6 p-5 bg-red-50 text-red-700 rounded-2xl border border-red-100 transition-all duration-300 shadow-md">
+            <div class="flex items-center">
+              <XCircleIcon class="h-6 w-6 mr-3 flex-shrink-0" />
+              <span class="font-medium">{{ $page.props.flash.error }}</span>
+            </div>
           </div>
-          <div v-if="$page.props.flash && $page.props.flash.prompt_keterangan" class="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
-            {{ $page.props.flash.prompt_keterangan }}
+          <div v-if="$page.props.flash && $page.props.flash.prompt_keterangan" class="mb-6 p-5 bg-yellow-50 text-yellow-700 rounded-2xl border border-yellow-100 transition-all duration-300 shadow-md">
+            <div class="flex items-center">
+              <AlertCircleIcon class="h-6 w-6 mr-3 flex-shrink-0" />
+              <span class="font-medium">{{ $page.props.flash.prompt_keterangan }}</span>
+            </div>
           </div>
 
           <!-- Full Leave Message -->
-          <div v-if="todayIzin && todayIzin.jenis_izin === 'penuh'" class="mb-6 p-4 bg-blue-100 text-blue-800 rounded-lg">
-            <div class="flex items-center">
-              <BanIcon class="h-5 w-5 mr-2" />
-              <span class="font-medium">Anda sedang dalam status izin penuh. Tidak perlu melakukan absensi hari ini.</span>
+          <div v-if="todayIzin && todayIzin.jenis_izin === 'penuh'" class="mb-8 p-5 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 transition-all duration-300 shadow-md">
+            <div class="flex items-start">
+              <BanIcon class="h-6 w-6 mr-3 flex-shrink-0 mt-0.5" />
+              <div>
+                <span class="font-medium">Anda sedang dalam status izin penuh. Tidak perlu melakukan absensi hari ini.</span>
+                <p class="mt-2 text-sm">Keterangan: {{ todayIzin.keterangan }}</p>
+              </div>
             </div>
-            <p class="mt-1 text-sm">Keterangan: {{ todayIzin.keterangan }}</p>
           </div>
 
           <!-- Partial Leave Message -->
-          <div v-if="todayIzin && todayIzin.jenis_izin === 'parsial'" class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
-            <div class="flex items-center">
-              <ClockIcon class="h-5 w-5 mr-2" />
-              <span class="font-medium">Anda memiliki izin parsial hari ini.</span>
+          <div v-if="todayIzin && todayIzin.jenis_izin === 'parsial'" class="mb-8 p-5 bg-yellow-50 text-yellow-700 rounded-2xl border border-yellow-100 transition-all duration-300 shadow-md">
+            <div class="flex items-start">
+              <ClockIcon class="h-6 w-6 mr-3 flex-shrink-0 mt-0.5" />
+              <div>
+                <span class="font-medium">Anda memiliki izin parsial hari ini.</span>
+                <p class="mt-2 text-sm">Keterangan: {{ todayIzin.keterangan }}</p>
+                <p class="mt-1 text-sm">Anda diperbolehkan melakukan Check-in, namun tidak wajib melakukan Check-out.</p>
+              </div>
             </div>
-            <p class="mt-1 text-sm">Keterangan: {{ todayIzin.keterangan }}</p>
-            <p class="mt-1 text-sm">Anda diperbolehkan melakukan Check-in, namun tidak wajib melakukan Check-out.</p>
           </div>
 
           <!-- Late Arrival Explanation Modal -->
-          <div v-if="showLateArrivalModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 class="text-lg font-semibold mb-4">Keterangan Keterlambatan</h3>
-              <p class="text-gray-600 mb-4">Anda terlambat hari ini. Mohon berikan alasan keterlambatan Anda:</p>
+          <div v-if="showLateArrivalModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl p-7 w-full max-w-md shadow-2xl transform transition-all duration-300 scale-100">
+              <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-semibold text-gray-900">Keterangan Keterlambatan</h3>
+                <button @click="cancelLateArrival" class="text-gray-400 hover:text-gray-500 focus:outline-none p-2 rounded-full hover:bg-gray-100">
+                  <XIcon class="h-5 w-5" />
+                </button>
+              </div>
+              <p class="text-gray-600 mb-5">Anda terlambat hari ini. Mohon berikan alasan keterlambatan Anda:</p>
               <textarea 
                 v-model="lateArrivalReason" 
-                class="w-full border border-gray-300 rounded-lg p-2 mb-4" 
-                rows="3" 
+                class="w-full border border-gray-300 rounded-xl p-4 mb-5 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] transition-colors duration-200 shadow-sm" 
+                rows="4" 
                 placeholder="Masukkan alasan keterlambatan..."
               ></textarea>
-              <div class="flex justify-end gap-2">
-                <button @click="cancelLateArrival" class="px-4 py-2 border border-gray-300 rounded-lg">Batal</button>
-                <button @click="submitLateArrival" class="px-4 py-2 bg-red-600 text-white rounded-lg">Kirim</button>
+              <div class="flex justify-end gap-3">
+                <button @click="cancelLateArrival" class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium">
+                  Batal
+                </button>
+                <button @click="submitLateArrival" class="px-5 py-2.5 bg-[#dc2626] text-white rounded-xl hover:bg-[#b91c1c] transition-colors duration-300 font-medium flex items-center">
+                  <CheckIcon class="w-4 h-4 mr-2" />
+                  Kirim
+                </button>
               </div>
             </div>
           </div>
 
           <!-- Permission Request Modal -->
-          <div v-if="showPermissionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 class="text-lg font-semibold mb-4">Ajukan Izin</h3>
-              <div class="mb-4">
+          <div v-if="showPermissionModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl p-7 w-full max-w-md shadow-2xl transform transition-all duration-300 scale-100">
+              <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-semibold text-gray-900">Ajukan Izin</h3>
+                <button @click="cancelPermission" class="text-gray-400 hover:text-gray-500 focus:outline-none p-2 rounded-full hover:bg-gray-100">
+                  <XIcon class="h-5 w-5" />
+                </button>
+              </div>
+              <div class="mb-5">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="jenis_izin">
                   Jenis Izin
                 </label>
                 <select 
                   v-model="permissionType" 
-                  class="w-full border border-gray-300 rounded-lg p-2"
+                  class="w-full border border-gray-300 rounded-xl p-4 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] transition-colors duration-200 shadow-sm"
                 >
                   <option value="penuh">Izin Penuh (Tidak perlu absensi)</option>
                   <option value="parsial">Izin Parsial (Bisa absen masuk saja)</option>
                 </select>
               </div>
-              <p class="text-gray-600 mb-4">Mohon berikan keterangan izin Anda:</p>
+              <p class="text-gray-600 mb-5">Mohon berikan keterangan izin Anda:</p>
               <textarea 
                 v-model="permissionReason" 
-                class="w-full border border-gray-300 rounded-lg p-2 mb-4" 
-                rows="3" 
+                class="w-full border border-gray-300 rounded-xl p-4 mb-5 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] transition-colors duration-200 shadow-sm" 
+                rows="4" 
                 placeholder="Masukkan alasan izin..."
               ></textarea>
-              <div class="flex justify-end gap-2">
-                <button @click="cancelPermission" class="px-4 py-2 border border-gray-300 rounded-lg">Batal</button>
-                <button @click="submitPermission" class="px-4 py-2 bg-red-600 text-white rounded-lg">Ajukan</button>
+              <div class="flex justify-end gap-3">
+                <button @click="cancelPermission" class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium">
+                  Batal
+                </button>
+                <button @click="submitPermission" class="px-5 py-2.5 bg-[#dc2626] text-white rounded-xl hover:bg-[#b91c1c] transition-colors duration-200 font-medium">
+                  Ajukan
+                </button>
               </div>
             </div>
-          </div>
-
-          <!-- Outside Working Hours Warning -->
-          <div v-if="!isWithinWorkingHours" class="mb-6 p-4 bg-orange-100 text-orange-800 rounded-lg">
-            <div class="flex items-center">
-              <AlertTriangleIcon class="h-5 w-5 mr-2" />
-              <span class="font-medium">Peringatan: Di luar jam kerja</span>
-            </div>
-            <p class="mt-1 text-sm">Absensi saat ini di luar jam kerja yang ditentukan. Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).</p>
           </div>
 
           <!-- Already Completed Attendance Message -->
-          <div v-if="hasCheckedIn && hasCheckedOut" class="mb-6 p-4 bg-green-100 text-green-800 rounded-lg">
-            <div class="flex items-center">
-              <CheckCircleIcon class="h-5 w-5 mr-2" />
-              <span class="font-medium">Absensi hari ini telah tercatat. Tetap semangat menjalankan tugas dan tanggung jawab!</span>
+          <div v-if="hasCheckedIn && hasCheckedOut" class="mb-8 p-5 bg-green-50 text-green-700 rounded-2xl border border-green-100 transition-all duration-300 shadow-md">
+            <div class="flex items-start">
+              <CheckCircleIcon class="h-6 w-6 mr-3 flex-shrink-0 mt-0.5" />
+              <div>
+                <span class="font-medium">Absensi hari ini telah tercatat. Tetap semangat menjalankan tugas dan tanggung jawab!</span>
+                <p class="mt-2 text-sm">Check-in: {{ todayAttendance.waktu_masuk }} | Check-out: {{ todayAttendance.waktu_keluar }}</p>
+                <p v-if="todayAttendance.keterangan" class="mt-1 text-sm">Keterangan: {{ todayAttendance.keterangan }}</p>
+              </div>
             </div>
-            <p class="mt-1 text-sm">Check-in: {{ todayAttendance.waktu_masuk }} | Check-out: {{ todayAttendance.waktu_keluar }}</p>
-            <p v-if="todayAttendance.keterangan" class="mt-1 text-sm">Keterangan: {{ todayAttendance.keterangan }}</p>
           </div>
 
           <!-- Partial Leave Check-in Message -->
-          <div v-if="todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'" class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
-            <div class="flex items-center">
-              <InfoIcon class="h-5 w-5 mr-2" />
-              <span class="font-medium">Anda telah melakukan check-in izin parsial.</span>
-            </div>
-            <p class="mt-1 text-sm">Anda tidak wajib melakukan check-out.</p>
-            <p v-if="todayAttendance.keterangan" class="mt-1 text-sm">Keterangan: {{ todayAttendance.keterangan }}</p>
-          </div>
-
-          <!-- Status Cards Section -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Check-in Card -->
-            <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col justify-between">
+          <div v-if="todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'" class="mb-8 p-5 bg-yellow-50 text-yellow-700 rounded-2xl border border-yellow-100 transition-all duration-300 shadow-md">
+            <div class="flex items-start">
+              <InfoIcon class="h-6 w-6 mr-3 flex-shrink-0 mt-0.5" />
               <div>
-                <h2 class="text-lg font-semibold text-[#dc2626] mb-2">
-                  {{ todayIzin && todayIzin.jenis_izin === 'parsial' ? 'Check-in (Izin Parsial)' : 'Check-in' }}
-                </h2>
-                <p class="text-sm text-gray-500 mb-4">
-                  {{ hasCheckedIn ? 'Sudah melakukan check-in' : 'Belum melakukan check-in' }}
-                </p>
+                <span class="font-medium">Anda telah melakukan check-in izin parsial.</span>
+                <p class="mt-2 text-sm">Anda tidak wajib melakukan check-out.</p>
+                <p v-if="todayAttendance.keterangan" class="mt-1 text-sm">Keterangan: {{ todayAttendance.keterangan }}</p>
               </div>
-              <button
-                :disabled="hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)')"
-                @click="checkIn"
-                class="w-full py-2.5 rounded-lg font-semibold text-white transition-all duration-200"
-                :class="(hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)')) ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dc2626] hover:bg-[#b91c1c]'"
-              >
-                {{ todayIzin && todayIzin.jenis_izin === 'parsial' ? 'Check-in (Izin Parsial)' : 'Check-in' }}
-              </button>
-            </div>
-
-            <!-- Check-out Card -->
-            <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col justify-between">
-              <div>
-                <h2 class="text-lg font-semibold text-[#dc2626] mb-2">Check-out</h2>
-                <p class="text-sm text-gray-500 mb-4">
-                  {{ hasCheckedOut ? 'Sudah melakukan check-out' : (hasCheckedIn ? 'Belum melakukan check-out' : 'Lakukan check-in terlebih dahulu') }}
-                </p>
-              </div>
-              <button
-                :disabled="!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)')"
-                @click="checkOut"
-                class="w-full py-2.5 rounded-lg font-semibold text-white transition-all duration-200"
-                :class="(!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)')) ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dc2626] hover:bg-[#b91c1c]'"
-              >
-                Check-out
-              </button>
-            </div>
-
-            <!-- Permission Card -->
-            <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col justify-between">
-              <div>
-                <h2 class="text-lg font-semibold text-[#dc2626] mb-2">Izin</h2>
-                <p class="text-sm text-gray-500 mb-4">
-                  {{ todayAttendance && (todayAttendance.status === 'Izin (Valid)' || todayAttendance.status === 'Izin') ? 'Izin telah diajukan' : 'Ajukan izin hari ini' }}
-                </p>
-              </div>
-              <button
-                :disabled="hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)')"
-                @click="openPermissionModal"
-                class="w-full py-2.5 rounded-lg font-semibold text-white transition-all duration-200"
-                :class="(hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin (Valid)')) ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dc2626] hover:bg-[#b91c1c]'"
-              >
-                Ajukan Izin
-              </button>
             </div>
           </div>
 
-          <!-- Employee Location Information -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- Current Location Card -->
-            <div class="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
-              <h3 class="text-[#dc2626] font-semibold mb-3">Lokasi Anda Saat Ini</h3>
-              <div class="flex items-start">
-                <MapPinIcon class="h-5 w-5 text-[#dc2626] mt-0.5 mr-2 flex-shrink-0" />
-                <div>
-                  <p v-if="currentLocation" class="text-gray-700">
-                    <span class="font-medium">Koordinat:</span> {{ currentLocation.lat.toFixed(6) }}, {{ currentLocation.lng.toFixed(6) }}
-                  </p>
-                  <p v-else class="text-gray-500 italic">Mendeteksi lokasi...</p>
-                  <div v-if="gettingLocation" class="mt-2 flex items-center text-sm text-gray-600">
-                    <div class="w-4 h-4 border-t-2 border-[#dc2626] border-solid rounded-full animate-spin mr-2"></div>
-                    <span>Mendeteksi lokasi Anda...</span>
+          <!-- Attendance and Leave Cards Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Unified Attendance Card -->
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center mb-4">
+                  <div class="p-3 rounded-xl bg-red-50 mr-4">
+                    <LogInIcon class="w-6 h-6 text-[#dc2626]" />
                   </div>
-                  <p v-if="autoLocationDetected && currentLocation" class="mt-2 text-sm text-green-600">
-                    ✓ Lokasi berhasil dideteksi secara otomatis
-                  </p>
-                  <!-- Warning message when outside office radius -->
-                  <div v-if="currentLocation && !isWithinOfficeRadius" class="mt-3 p-3 bg-red-100 text-red-800 rounded-lg">
-                    <div class="flex items-center">
-                      <AlertTriangleIcon class="h-5 w-5 mr-2 flex-shrink-0" />
-                      <span class="font-medium">Peringatan: Di luar radius kantor</span>
-                    </div>
-                    <p class="mt-1 text-sm">Lokasi Anda saat ini berada di luar radius kantor yang ditentukan. Absensi mungkin tidak dapat diproses.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Office Location Card -->
-             <div class="bg-white rounded-2xl border border-red-100 shadow-sm p-5 ">
-                <!-- Baris Judul -->
-                <h3 class="text-[#dc2626] font-semibold">Lokasi Kantor</h3>
-                <!-- <div class="flex items-center mb-3"> -->
-                    <!-- <BuildingIcon class="h-5 w-5 text-[#dc2626] mr-2 flex-shrink-0" /> -->
-                    <p class="text-gray-700 text-sm">
-                      <span class="font-medium">Koordinat Kantor:</span>
-                      {{ systemSettings ? systemSettings.location_latitude : '0.5240005' }},
-                      {{ systemSettings ? systemSettings.location_longitude : '123.0604752' }}
+                  <div>
+                    <h2 class="text-xl font-semibold text-gray-900">
+                      {{ getAttendanceCardTitle }}
+                    </h2>
+                    <p class="text-gray-600 text-sm">
+                      {{ getAttendanceCardDescription }}
                     </p>
-                  <!-- </div> -->
-                <!-- Paragraf Informasi -->
-                <div class="space-y-1.5">
-                  <p class="text-gray-700 text-sm">
-                    Lokasi absensi harus berada dalam radius
-                    <span class="font-semibold text-[#dc2626]">
-                      {{ systemSettings ? systemSettings.location_radius : '' }} meter
-                    </span>
-                    dari kantor POLDA Gorontalo.
-                  </p>
-
-                  <p v-if="systemSettings" class="text-gray-600 text-sm">
-                    <span class="font-medium">Jam Masuk:</span>
-                    {{ systemSettings.jam_masuk }} WITA
-                  </p>
-
-                  <p v-if="systemSettings" class="text-gray-600 text-sm">
-                    <span class="font-medium">Jam Pulang:</span>
-                    {{ systemSettings.jam_pulang }} WITA
-                  </p>
+                  </div>
+                </div>
+                
+                <div v-if="hasCheckedIn && !hasCheckedOut" class="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div class="text-sm text-gray-500">Check-in:</div>
+                  <div class="font-medium">{{ todayAttendance.waktu_masuk }}</div>
+                </div>
+                
+                <!-- Attendance Warnings Section -->
+                <div class="mb-4 space-y-3">
+                  <!-- Outside Working Hours Warning -->
+                  <div v-if="!isWithinWorkingHours" class="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div class="flex items-start">
+                      <AlertTriangleIcon class="h-4 w-4 text-orange-600 mt-0.5 mr-2 flex-shrink-0" />
+                      <div class="text-sm text-orange-700">
+                        <span class="font-medium">Peringatan:</span> Di luar jam kerja. Absensi saat ini akan ditandai sebagai tidak hadir (alpha).
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Location Warning -->
+                  <div v-if="currentLocation && !isWithinOfficeRadius && !locationValidationDisabled" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-start">
+                      <MapPinIcon class="h-4 w-4 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+                      <div class="text-sm text-red-700">
+                        <span class="font-medium">Peringatan:</span> Lokasi Anda berada di luar radius kantor. Absensi tidak dapat diproses.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="mt-auto">
+                  <button
+                    :disabled="isAttendanceButtonDisabled"
+                    @click="handleAttendanceAction"
+                    class="w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center transform hover:scale-[1.02]"
+                    :class="getAttendanceButtonClass"
+                  >
+                    <Loader2Icon v-if="gettingLocation && !isAttendanceButtonDisabled" class="w-5 h-5 mr-2 animate-spin" />
+                    {{ getAttendanceButtonText }}
+                  </button>
                 </div>
               </div>
+            </div>
+
+            <!-- Leave Request Card -->
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
+              <div class="flex flex-col h-full">
+                <div class="flex items-center mb-4">
+                  <div class="p-3 rounded-xl bg-blue-50 mr-4">
+                    <FileTextIcon class="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 class="text-xl font-semibold text-gray-900">Pengajuan Izin</h2>
+                    <p class="text-gray-600 text-sm">Ajukan izin jika tidak dapat hadir</p>
+                  </div>
+                </div>
+                
+                <div class="mb-4 flex-1">
+                  <p class="text-gray-600 text-sm mb-3">Pilih jenis izin yang sesuai dengan kebutuhan Anda:</p>
+                  <ul class="text-sm text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                      <span><span class="font-medium">Izin Penuh:</span> Tidak perlu absen hari ini</span>
+                    </li>
+                    <li class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                      <span><span class="font-medium">Izin Parsial:</span> Hanya perlu check-in</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div class="mt-auto">
+                  <button 
+                    @click="showPermissionModal = true"
+                    class="w-full py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold flex items-center justify-center"
+                  >
+                    <PlusIcon class="w-5 h-5 mr-2" />
+                    Ajukan Izin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Location Information -->
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <MapPinIcon class="w-6 h-6 text-[#dc2626] mr-2" />
+              Informasi Lokasi
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p class="text-gray-600 mb-4">Lokasi kantor POLDA TIK:</p>
+                <div class="flex items-center text-sm text-gray-500 mb-2">
+                  <MapPinIcon class="w-4 h-4 mr-2" />
+                  <span>Latitude: {{ officeLocation.lat }}</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-500 mb-4">
+                  <MapPinIcon class="w-4 h-4 mr-2" />
+                  <span>Longitude: {{ officeLocation.lng }}</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-500 mb-2">
+                  <BuildingIcon class="w-4 h-4 mr-2" />
+                  <span>Radius absensi: {{ attendanceRadius }} meter</span>
+                </div>
+              </div>
+              <div class="h-48 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                <div ref="mapContainer" class="w-full h-full"></div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -269,7 +324,24 @@ import Sidebar from '@/Components/Sidebar.vue';
 import { router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
 import Swal from 'sweetalert2';
-import { CheckCircleIcon, InfoIcon, BanIcon, ClockIcon, AlertTriangleIcon, MapPinIcon, BuildingIcon } from 'lucide-vue-next';
+import { 
+  CheckCircleIcon, 
+  InfoIcon, 
+  BanIcon, 
+  ClockIcon, 
+  AlertTriangleIcon, 
+  MapPinIcon, 
+  BuildingIcon,
+  XIcon,
+  XCircleIcon,
+  AlertCircleIcon,
+  LogInIcon,
+  LogOutIcon,
+  FileTextIcon,
+  PlusIcon,
+  Loader2Icon,
+  CheckIcon
+} from 'lucide-vue-next';
 
 const props = defineProps({
     user: Object,
@@ -278,11 +350,24 @@ const props = defineProps({
     systemSettings: Object,
 });
 
+// Office location with fallback values
+const officeLocation = {
+  lat: props.systemSettings?.location_latitude || 0.5240005,
+  lng: props.systemSettings?.location_longitude || 123.0604752
+};
+
+// Attendance radius with fallback value
+const attendanceRadius = props.systemSettings?.location_radius || 100;
+
 const sidebarOpen = ref(true);
 const sidebarCollapsed = ref(false);
 const gettingLocation = ref(false);
 const currentLocation = ref(null);
 const autoLocationDetected = ref(false);
+
+// Testing mode state
+const isDevelopmentMode = ref(process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost');
+const locationValidationDisabled = ref(false);
 
 // Modal states
 const showLateArrivalModal = ref(false);
@@ -297,6 +382,21 @@ const toggleSidebar = () => {
 
 const handleSidebarCollapse = (collapsed) => {
   sidebarCollapsed.value = collapsed;
+};
+
+// Toggle location validation for testing
+const toggleLocationValidation = () => {
+  locationValidationDisabled.value = !locationValidationDisabled.value;
+  Swal.fire({
+    icon: locationValidationDisabled.value ? 'success' : 'info',
+    title: locationValidationDisabled.value ? 'Radius Dinonaktifkan' : 'Radius Diaktifkan',
+    text: locationValidationDisabled.value 
+      ? 'Validasi radius lokasi telah dinonaktifkan untuk testing.' 
+      : 'Validasi radius lokasi telah diaktifkan kembali.',
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+  });
 };
 
 const currentDate = new Date().toLocaleDateString('id-ID', {
@@ -315,14 +415,94 @@ const hasCheckedOut = computed(() => {
   return props.todayAttendance && props.todayAttendance.waktu_keluar;
 });
 
+// Computed properties for unified attendance card
+const getAttendanceCardTitle = computed(() => {
+  if (hasCheckedIn.value && hasCheckedOut.value) {
+    return 'Absensi Selesai';
+  } else if (hasCheckedIn.value && !hasCheckedOut.value) {
+    return 'Sudah Check-in';
+  } else {
+    return 'Belum Absen';
+  }
+});
+
+const getAttendanceCardDescription = computed(() => {
+  if (hasCheckedIn.value && hasCheckedOut.value) {
+    return 'Absensi hari ini telah tercatat. Tetap semangat menjalankan tugas!';
+  } else if (hasCheckedIn.value && !hasCheckedOut.value) {
+    return 'Anda sudah melakukan check-in. Silakan lakukan check-out.';
+  } else {
+    return 'Silakan lakukan absensi hari ini.';
+  }
+});
+
+const getAttendanceButtonText = computed(() => {
+  if (hasCheckedIn.value && !hasCheckedOut.value) {
+    return 'Check-out';
+  } else {
+    return 'Check-in';
+  }
+});
+
+const isAttendanceButtonDisabled = computed(() => {
+  // Disable if user has full leave
+  if (props.todayIzin && props.todayIzin.jenis_izin === 'penuh') {
+    return true;
+  }
+  
+  // Disable if user has valid izin
+  if (props.todayAttendance && props.todayAttendance.status === 'Izin (Valid)') {
+    return true;
+  }
+  
+  // Disable if user has partial leave and already checked in
+  if (props.todayIzin && props.todayIzin.jenis_izin === 'parsial' && 
+      props.todayAttendance && props.todayAttendance.status === 'Izin Parsial (Check-in)') {
+    return true;
+  }
+  
+  // Disable check-out button if not checked in yet
+  if (!hasCheckedIn.value && hasCheckedOut.value) {
+    return true;
+  }
+  
+  // Disable if already completed both check-in and check-out
+  if (hasCheckedIn.value && hasCheckedOut.value) {
+    return true;
+  }
+  
+  return false;
+});
+
+const getAttendanceButtonClass = computed(() => {
+  if (isAttendanceButtonDisabled.value) {
+    return 'bg-gray-100 text-gray-400 cursor-not-allowed';
+  } else if (hasCheckedIn.value && !hasCheckedOut.value) {
+    // Check-out button
+    return 'bg-gray-900 hover:bg-black';
+  } else {
+    // Check-in button
+    return 'bg-[#dc2626] hover:bg-[#b91c1c]';
+  }
+});
+
+// Handle attendance action (check-in or check-out)
+const handleAttendanceAction = () => {
+  if (hasCheckedIn.value && !hasCheckedOut.value) {
+    checkOut();
+  } else {
+    checkIn();
+  }
+};
+
 // Check if current time is within working hours
 const isWithinWorkingHours = computed(() => {
   if (!props.systemSettings) return true;
   
   const now = new Date();
   const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
-  const jamMasuk = props.systemSettings.jam_masuk || '08:00:00';
-  const jamPulang = props.systemSettings.jam_pulang || '17:00:00';
+  const jamMasuk = props.systemSettings?.jam_masuk || '08:00:00';
+  const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
   
   // Allow check-in from jam_masuk until 1 hour after jam_pulang
   const endCheckInTime = new Date(`1970-01-01T${jamPulang}`);
@@ -334,13 +514,22 @@ const isWithinWorkingHours = computed(() => {
 
 // Check if current location is within office radius
 const isWithinOfficeRadius = computed(() => {
+  // If location validation is disabled for testing, always return true
+  if (locationValidationDisabled.value) return true;
+  
   if (!currentLocation.value || !props.systemSettings) return true;
+  
+  // Ensure we have valid coordinates
+  const officeLat = props.systemSettings?.location_latitude;
+  const officeLng = props.systemSettings?.location_longitude;
+  
+  if (officeLat === undefined || officeLng === undefined) return true;
   
   const lat1 = currentLocation.value.lat;
   const lng1 = currentLocation.value.lng;
-  const lat2 = props.systemSettings.location_latitude;
-  const lng2 = props.systemSettings.location_longitude;
-  const radius = props.systemSettings.location_radius;
+  const lat2 = officeLat;
+  const lng2 = officeLng;
+  const radius = props.systemSettings?.location_radius || 100;
   
   // Convert to radians
   const radLat1 = (Math.PI * lat1) / 180;
@@ -435,8 +624,8 @@ const checkIn = () => {
     return;
   }
   
-  // Check if user is within office radius
-  if (currentLocation.value && !isWithinOfficeRadius.value) {
+  // Check if user is within office radius (unless disabled for testing)
+  if (currentLocation.value && !isWithinOfficeRadius.value && !locationValidationDisabled.value) {
     Swal.fire({
       icon: 'warning',
       title: 'Peringatan!',
@@ -450,7 +639,7 @@ const checkIn = () => {
     Swal.fire({
       icon: 'warning',
       title: 'Peringatan!',
-      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk} - ${props.systemSettings?.jam_pulang}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
+      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk || '08:00'} - ${props.systemSettings?.jam_pulang || '17:00'}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
       showCancelButton: true,
       confirmButtonText: 'Lanjutkan',
       cancelButtonText: 'Batal'
@@ -564,8 +753,8 @@ const checkOut = () => {
   
   if (!hasCheckedIn.value || hasCheckedOut.value) return;
   
-  // Check if user is within office radius
-  if (currentLocation.value && !isWithinOfficeRadius.value) {
+  // Check if user is within office radius (unless disabled for testing)
+  if (currentLocation.value && !isWithinOfficeRadius.value && !locationValidationDisabled.value) {
     Swal.fire({
       icon: 'warning',
       title: 'Peringatan!',
@@ -579,7 +768,7 @@ const checkOut = () => {
     Swal.fire({
       icon: 'warning',
       title: 'Peringatan!',
-      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk} - ${props.systemSettings?.jam_pulang}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
+      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk || '08:00'} - ${props.systemSettings?.jam_pulang || '17:00'}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
       showCancelButton: true,
       confirmButtonText: 'Lanjutkan',
       cancelButtonText: 'Batal'
@@ -753,4 +942,16 @@ const submitLateArrival = () => {
     }
   });
 };
+
+// Close modals when pressing Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (showLateArrivalModal.value) {
+      cancelLateArrival();
+    }
+    if (showPermissionModal.value) {
+      cancelPermission();
+    }
+  }
+});
 </script>

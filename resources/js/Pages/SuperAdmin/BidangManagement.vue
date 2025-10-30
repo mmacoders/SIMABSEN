@@ -30,8 +30,11 @@
                             </div>
                             <div class="relative">
                                 <button @click="toggleProfileMenu" class="flex items-center space-x-2 focus:outline-none">
-                                    <div class="h-8 w-8 rounded-full bg-[#C62828] flex items-center justify-center text-white font-semibold">
-                                        SA
+                                    <div v-if="$page.props.auth.user.profile_pict" class="h-8 w-8 rounded-full overflow-hidden">
+                                        <img :src="$page.props.auth.user.profile_pict" :alt="'Super Admin avatar'" class="w-full h-full object-cover">
+                                    </div>
+                                    <div v-else class="h-8 w-8 rounded-full bg-[#C62828] flex items-center justify-center text-white font-semibold">
+                                        {{ userInitials }}
                                     </div>
                                     <span class="text-gray-700 hidden md:block">Super Admin</span>
                                     <ChevronDownIcon class="h-4 w-4 text-gray-500 hidden md:block" />
@@ -39,7 +42,7 @@
                                 <!-- Profile Dropdown -->
                                 <div v-if="profileMenuOpen" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                                     <div class="py-1">
-                                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a :href="route('superadmin.profil')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <UserIcon class="h-4 w-4 inline mr-2" />
                                             Profil
                                         </a>
@@ -173,8 +176,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -197,6 +200,16 @@ import {
 // Props
 const props = defineProps({
     bidangs: Array,
+});
+
+// Get page props
+const page = usePage();
+
+// Computed property for user initials
+const userInitials = computed(() => {
+  const user = page.props.auth.user;
+  if (!user || !user.name) return 'SA';
+  return user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 });
 
 // State
@@ -226,17 +239,22 @@ const handleSidebarCollapse = (collapsed) => {
     sidebarCollapsed.value = collapsed;
 };
 
-// Logout function
 const logout = () => {
     router.post(route('logout'));
+};
+
+const closeModal = () => {
+    showCreateModal.value = false;
+    showEditModal.value = false;
+    editingBidang.value = null;
+    bidangForm.reset();
 };
 
 const createBidang = () => {
     bidangForm.post(route('superadmin.bidang.store'), {
         onSuccess: () => {
             closeModal();
-            bidangForm.reset();
-        },
+        }
     });
 };
 
@@ -251,28 +269,13 @@ const updateBidang = () => {
     bidangForm.patch(route('superadmin.bidang.update', editingBidang.value.id), {
         onSuccess: () => {
             closeModal();
-        },
+        }
     });
 };
 
 const deleteBidang = (bidang) => {
-    if (confirm('Apakah Anda yakin ingin menghapus bidang ini? Tindakan ini akan menghapus semua data terkait.')) {
+    if (confirm('Apakah Anda yakin ingin menghapus bidang ini?')) {
         router.delete(route('superadmin.bidang.destroy', bidang.id));
     }
 };
-
-const closeModal = () => {
-    showCreateModal.value = false;
-    showEditModal.value = false;
-    editingBidang.value = null;
-    bidangForm.reset();
-    bidangForm.clearErrors();
-};
-
-// Close profile menu when clicking outside
-document.addEventListener('click', (event) => {
-    if (profileMenuOpen.value && !event.target.closest('.relative')) {
-        profileMenuOpen.value = false;
-    }
-});
 </script>

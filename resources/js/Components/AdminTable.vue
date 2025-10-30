@@ -59,12 +59,20 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr 
-            v-for="admin in paginatedAdmins" 
+            v-for="admin in paginatedAdmins"
             :key="admin.id"
             class="hover:bg-gray-50 transition-all duration-300"
           >
             <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">{{ admin.name }}</div>
+              <div class="flex items-center">
+                <div v-if="admin.profile_pict_url" class="w-10 h-10 rounded-full overflow-hidden mr-3">
+                  <img :src="admin.profile_pict_url" :alt="admin.name" class="w-full h-full object-cover">
+                </div>
+                <div v-else class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                  <UserIcon class="h-5 w-5 text-gray-500" />
+                </div>
+                <div class="text-sm font-medium text-gray-900">{{ admin.name }}</div>
+              </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500">{{ admin.email }}</div>
@@ -83,21 +91,21 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <div class="flex space-x-2">
                 <button 
-                  @click="emit('edit-admin', admin)"
+                  @click="handleEdit(admin)"
                   class="text-[#C62828] hover:text-[#b71c1c] p-1 rounded transition-all duration-300"
                   title="Edit"
                 >
                   <EditIcon class="h-5 w-5" />
                 </button>
                 <button 
-                  @click="emit('transfer-admin', admin)"
+                  @click="handleTransfer(admin)"
                   class="text-blue-600 hover:text-blue-800 p-1 rounded transition-all duration-300"
                   title="Pindah Bidang"
                 >
                   <ArrowRightLeftIcon class="h-5 w-5" />
                 </button>
                 <button 
-                  @click="emit('toggle-status', admin)"
+                  @click="handleToggleStatus(admin)"
                   :class="admin.status === 'active' ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'"
                   class="p-1 rounded transition-all duration-300"
                   :title="admin.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'"
@@ -105,7 +113,7 @@
                   <PowerIcon class="h-5 w-5" />
                 </button>
                 <button 
-                  @click="emit('delete-admin', admin)"
+                  @click="handleDelete(admin)"
                   class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
                   title="Hapus"
                 >
@@ -115,7 +123,7 @@
             </td>
           </tr>
           <tr v-if="paginatedAdmins.length === 0">
-            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
               Tidak ada data admin
             </td>
           </tr>
@@ -124,92 +132,34 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
-      <div class="flex flex-1 justify-between sm:hidden">
-        <button
-          @click="prevPage"
-          :disabled="currentPage === 1"
-          class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Sebelumnya
-        </button>
-        <button
-          @click="nextPage"
-          :disabled="currentPage === totalPages"
-          class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Berikutnya
-        </button>
-      </div>
-      <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        <div>
-          <p class="text-sm text-gray-700">
-            Menampilkan
-            <span class="font-medium">{{ startIndex + 1 }}</span>
-            sampai
-            <span class="font-medium">{{ Math.min(startIndex + adminsPerPage, filteredAdmins.length) }}</span>
-            dari
-            <span class="font-medium">{{ filteredAdmins.length }}</span>
-            admin
-          </p>
-        </div>
-        <div>
-          <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-            <button
-              @click="prevPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <ChevronLeftIcon class="h-5 w-5" />
-            </button>
-            
-            <template v-for="page in visiblePages" :key="page">
-              <span 
-                v-if="page === '...'" 
-                class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0"
-              >
-                ...
-              </span>
-              <button
-                v-else
-                @click="goToPage(page)"
-                :class="[
-                  page === currentPage 
-                    ? 'z-10 bg-[#C62828] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C62828]' 
-                    : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50',
-                  'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0'
-                ]"
-              >
-                {{ page }}
-              </button>
-            </template>
-            
-            <button
-              @click="nextPage"
-              :disabled="currentPage === totalPages"
-              class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <ChevronRightIcon class="h-5 w-5" />
-            </button>
-          </nav>
-        </div>
-      </div>
-    </div>
+    <Pagination 
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :visible-pages="visiblePages"
+      :start-index="startIndex"
+      :per-page="adminsPerPage"
+      :total-items="filteredAdmins.length"
+      @prev-page="prevPage"
+      @next-page="nextPage"
+      @go-to-page="goToPage"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import Pagination from '@/Components/Pagination.vue';
 import {
   SearchIcon,
   PlusCircleIcon,
+  ArrowUpDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EditIcon,
   ArrowRightLeftIcon,
   PowerIcon,
   TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ArrowUpDownIcon
+  UserIcon
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -362,6 +312,23 @@ const goToPage = (page) => {
   if (page !== '...') {
     currentPage.value = page;
   }
+};
+
+// Handler methods for Admin actions
+const handleEdit = (admin) => {
+  emit('edit-admin', admin);
+};
+
+const handleTransfer = (admin) => {
+  emit('transfer-admin', admin);
+};
+
+const handleToggleStatus = (admin) => {
+  emit('toggle-status', admin);
+};
+
+const handleDelete = (admin) => {
+  emit('delete-admin', admin);
 };
 
 // Reset pagination when admins change

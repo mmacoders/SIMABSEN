@@ -105,6 +105,47 @@ class PegawaiController extends Controller
         ]);
     }
     
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users',
+            'no_hp' => 'nullable|string|max:20',
+            'pangkat' => 'nullable|string|max:255',
+            'nip' => 'nullable|string|max:50',
+            'nrp' => 'nullable|string|max:50',
+            'bidang_id' => 'required|exists:bidangs,id',
+            'jabatan' => 'nullable|string|max:255',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+        
+        // Handle NIP/NRP logic - only one should be filled
+        $nip = $request->nip;
+        $nrp = $request->nrp;
+        
+        // If both are provided, we'll use NIP and clear NRP
+        if ($nip && $nrp) {
+            $nrp = null;
+        }
+        
+        // Create user with default password
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make('password'), // Default password
+            'no_hp' => $request->no_hp,
+            'pangkat' => $request->pangkat,
+            'nip' => $nip,
+            'nrp' => $nrp,
+            'bidang_id' => $request->bidang_id,
+            'jabatan' => $request->jabatan,
+            'status' => $request->status,
+            'role' => 'user', // Pegawai role
+        ]);
+        
+        return redirect()->back()->with('success', 'Pegawai berhasil ditambahkan.');
+    }
+    
     public function update(Request $request, User $user)
     {
         $request->validate([
@@ -148,6 +189,18 @@ class PegawaiController extends Controller
         ]);
         
         return redirect()->back()->with('success', 'Data pegawai berhasil diperbarui.');
+    }
+    
+    public function destroy(User $user)
+    {
+        // Ensure user is a pegawai (user role)
+        if ($user->role !== 'user') {
+            abort(404);
+        }
+        
+        $user->delete();
+        
+        return redirect()->back()->with('success', 'Pegawai berhasil dihapus.');
     }
     
     public function toggleStatus(User $user)

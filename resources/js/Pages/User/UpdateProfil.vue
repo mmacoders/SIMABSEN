@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen bg-[#F8F9FA]">
+  <div class="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Sidebar -->
     <Sidebar 
       :sidebar-open="sidebarOpen"
@@ -18,43 +18,50 @@
       />
 
       <!-- Page Content -->
-      <main class="pt-16 p-4 sm:p-6 md:p-8">
-        <div class="max-w-7xl mx-auto">
+      <main class="pt-16 p-4 sm:p-6">
+        <div class="max-w-4xl mx-auto">
           <!-- Page Title -->
-          <div class="text-center mb-8">
-            <div class="flex justify-center items-center mb-3">
-              <UserCircleIcon class="h-8 w-8 text-gray-900 mr-2" />
-              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Perbarui Profil</h1>
+          <div class="mb-8">
+            <div class="flex items-center mb-3">
+              <UserCircleIcon class="h-7 w-7 text-[#dc2626] mr-3" />
+              <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Perbarui Profil</h1>
             </div>
             <p class="text-gray-600">Ubah informasi pribadi dan foto profil Anda di sini.</p>
           </div>
 
-          <div class="space-y-6">
+          <div class="space-y-8">
             <!-- Profile Picture Card -->
-            <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center border border-gray-100 transition-all duration-300">
-              <div class="relative mb-6">
-                <div v-if="profilePreview" class="w-32 h-32 rounded-full overflow-hidden ring-2 ring-red-500">
-                  <img :src="profilePreview" alt="Profile Preview" class="w-full h-full object-cover transition-all duration-300 ease-in-out">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
+              <h2 class="text-xl font-semibold text-gray-900 mb-5">Foto Profil</h2>
+              <div class="flex flex-col sm:flex-row items-center gap-8">
+                <div class="relative">
+                  <div v-if="profilePreview" class="w-36 h-36 rounded-full overflow-hidden ring-4 ring-[#dc2626] shadow-lg">
+                    <img :src="profilePreview" alt="Profile Preview" class="w-full h-full object-cover">
+                  </div>
+                  <div v-else class="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center ring-4 ring-[#dc2626] shadow-lg">
+                    <UserCircleIcon class="h-20 w-20 text-gray-400" />
+                  </div>
                 </div>
-                <div v-else class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center ring-2 ring-red-500">
-                  <UserCircleIcon class="h-16 w-16 text-gray-400" />
+                
+                <div class="text-center sm:text-left">
+                  <label class="bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl px-5 py-3 text-sm font-medium transition-all cursor-pointer inline-flex items-center shadow-md transform hover:scale-[1.02]">
+                    <UploadIcon class="w-5 h-5 mr-2" />
+                    <span>Ubah Foto</span>
+                    <input 
+                      type="file" 
+                      class="hidden" 
+                      @change="handleProfilePictureChange"
+                      accept="image/jpeg,image/png,image/jpg"
+                    >
+                  </label>
+                  <p class="text-xs text-gray-500 mt-3">Format JPG/PNG, maks. 2MB</p>
                 </div>
               </div>
-              
-              <label class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm transition-all cursor-pointer">
-                <span>Ubah Foto</span>
-                <input 
-                  type="file" 
-                  class="hidden" 
-                  @change="handleProfilePictureChange"
-                  accept="image/jpeg,image/png,image/jpg"
-                >
-              </label>
-              <p class="text-xs text-gray-500 mt-2">Format JPG/PNG, maks. 2MB</p>
             </div>
 
             <!-- Profile Information Form -->
-            <form @submit.prevent="submitProfile" class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 space-y-4 transition-all duration-300">
+            <form @submit.prevent="submitProfile" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
+              <h2 class="text-xl font-semibold text-gray-900 mb-5">Informasi Pribadi</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Name -->
                 <div>
@@ -62,7 +69,7 @@
                   <input
                     type="text"
                     v-model="profileForm.name"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.name }"
                   >
                   <div v-if="profileForm.errors.name" class="text-red-500 text-sm mt-1">{{ profileForm.errors.name }}</div>
@@ -75,7 +82,7 @@
                     type="text"
                     :value="profileForm.nip || profileForm.nrp"
                     disabled
-                    class="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-100 cursor-not-allowed"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-100 cursor-not-allowed shadow-sm"
                   >
                 </div>
 
@@ -85,7 +92,7 @@
                   <input
                     type="email"
                     v-model="profileForm.email"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.email }"
                   >
                   <div v-if="profileForm.errors.email" class="text-red-500 text-sm mt-1">{{ profileForm.errors.email }}</div>
@@ -97,7 +104,7 @@
                   <input
                     type="text"
                     v-model="profileForm.no_hp"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.no_hp }"
                   >
                   <div v-if="profileForm.errors.no_hp" class="text-red-500 text-sm mt-1">{{ profileForm.errors.no_hp }}</div>
@@ -109,7 +116,7 @@
                   <input
                     type="text"
                     v-model="profileForm.jabatan"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.jabatan }"
                   >
                   <div v-if="profileForm.errors.jabatan" class="text-red-500 text-sm mt-1">{{ profileForm.errors.jabatan }}</div>
@@ -120,7 +127,7 @@
                   <label class="text-sm font-medium text-gray-700 block mb-2">Bidang / Divisi</label>
                   <select
                     v-model="profileForm.bidang_id"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.bidang_id }"
                   >
                     <option value="">Pilih Bidang</option>
@@ -141,7 +148,7 @@
                   <input
                     type="password"
                     v-model="profileForm.password"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.password }"
                   >
                   <div v-if="profileForm.errors.password" class="text-red-500 text-sm mt-1">{{ profileForm.errors.password }}</div>
@@ -153,7 +160,7 @@
                   <input
                     type="password"
                     v-model="profileForm.password_confirmation"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition-all"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
                     :class="{ 'border-red-500': profileForm.errors.password_confirmation }"
                   >
                   <div v-if="profileForm.errors.password_confirmation" class="text-red-500 text-sm mt-1">{{ profileForm.errors.password_confirmation }}</div>
@@ -161,26 +168,21 @@
               </div>
 
               <!-- Action Buttons -->
-              <div class="flex flex-col sm:flex-row justify-end gap-4 pt-6">
+              <div class="flex flex-col sm:flex-row justify-end gap-4 pt-8">
                 <button
                   type="button"
                   @click="cancelChanges"
-                  class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-lg transition-all duration-200"
+                  class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   :disabled="isSubmitting"
-                  class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center"
+                  class="px-5 py-2.5 bg-[#dc2626] text-white rounded-xl hover:bg-[#b91c1c] transition-colors duration-200 flex items-center justify-center font-medium shadow-md transform hover:scale-[1.02]"
                   :class="{ 'opacity-60 cursor-not-allowed': isSubmitting }"
                 >
-                  <span v-if="isSubmitting" class="mr-2">
-                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </span>
+                  <Loader2Icon v-if="isSubmitting" class="w-5 h-5 mr-2 animate-spin" />
                   <span>{{ isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
                 </button>
               </div>
@@ -195,7 +197,7 @@
 <script setup>
 import Header from '@/Components/Header.vue';
 import Sidebar from '@/Components/Sidebar.vue';
-import { UserCircleIcon } from 'lucide-vue-next';
+import { UserCircleIcon, UploadIcon, Loader2Icon } from 'lucide-vue-next';
 import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Swal from 'sweetalert2';
@@ -345,4 +347,11 @@ const cancelChanges = () => {
     profileForm.profile_pict = null; // Also reset profile picture
     profilePreview.value = props.user.profile_pict_url || null;
 };
+
+// Clean up object URLs to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  if (profilePreview.value && profilePreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(profilePreview.value);
+  }
+});
 </script>

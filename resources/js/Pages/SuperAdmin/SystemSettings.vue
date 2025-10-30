@@ -10,50 +10,11 @@
         <!-- Main Content -->
         <div class="flex-1" :class="sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'">
             <!-- Header -->
-            <header class="bg-white shadow-md z-10">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16 items-center">
-                        <div class="flex items-center">
-                            <button 
-                                @click="toggleSidebar" 
-                                class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 mr-2"
-                            >
-                                <MenuIcon class="h-6 w-6" />
-                            </button>
-                            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Pengaturan Sistem</h2>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
-                                <button class="p-2 rounded-full hover:bg-gray-100">
-                                    <BellIcon class="h-5 w-5 text-gray-600" />
-                                </button>
-                            </div>
-                            <div class="relative">
-                                <button @click="toggleProfileMenu" class="flex items-center space-x-2 focus:outline-none">
-                                    <div class="h-8 w-8 rounded-full bg-[#C62828] flex items-center justify-center text-white font-semibold">
-                                        SA
-                                    </div>
-                                    <span class="text-gray-700 hidden md:block">Super Admin</span>
-                                    <ChevronDownIcon class="h-4 w-4 text-gray-500 hidden md:block" />
-                                </button>
-                                <!-- Profile Dropdown -->
-                                <div v-if="profileMenuOpen" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                                    <div class="py-1">
-                                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <UserIcon class="h-4 w-4 inline mr-2" />
-                                            Profil
-                                        </a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" @click.prevent="logout">
-                                            <LogOutIcon class="h-4 w-4 inline mr-2" />
-                                            Keluar
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <SuperAdminHeader 
+                title="Pengaturan Sistem"
+                :user-profile-pic="$page.props.auth.user.profile_pict_url"
+                @toggle-sidebar="toggleSidebar"
+            />
 
             <main class="py-8">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -191,15 +152,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
+import SuperAdminHeader from '@/Components/SuperAdminHeader.vue';
 import MapPreview from '@/Components/MapPreview.vue';
-import {
-    BellIcon,
-    ChevronDownIcon,
-    UserIcon,
-    LogOutIcon,
-    SaveIcon,
-    MenuIcon
-} from 'lucide-vue-next';
+import { SaveIcon } from 'lucide-vue-next';
 
 // Props
 const props = defineProps({
@@ -207,7 +162,6 @@ const props = defineProps({
 });
 
 // State
-const profileMenuOpen = ref(false);
 const sidebarOpen = ref(true);
 const sidebarCollapsed = ref(false);
 
@@ -221,10 +175,6 @@ const settingsForm = useForm({
 });
 
 // Methods
-const toggleProfileMenu = () => {
-    profileMenuOpen.value = !profileMenuOpen.value;
-};
-
 const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
 };
@@ -245,11 +195,4 @@ const saveSettings = () => {
         },
     });
 };
-
-// Close profile menu when clicking outside
-document.addEventListener('click', (event) => {
-    if (profileMenuOpen.value && !event.target.closest('.relative')) {
-        profileMenuOpen.value = false;
-    }
-});
 </script>

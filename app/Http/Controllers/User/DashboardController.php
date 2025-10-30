@@ -14,7 +14,9 @@ class DashboardController extends Controller
         $user = auth()->user();
         
         // Get today's attendance record if exists
-        $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
+        $todayAttendance = $user->absensis()
+            ->where('tanggal', date('Y-m-d'))
+            ->first();
         
         // Get last 7 days of attendance records
         $attendanceHistory = $user->absensis()
@@ -23,7 +25,11 @@ class DashboardController extends Controller
             ->get();
         
         // Check if user has leave permission for today
-        $todayIzin = $user->izins()->where('tanggal', date('Y-m-d'))->first();
+        // Using date range query with tanggal_mulai and tanggal_selesai
+        $todayIzin = $user->izins()
+            ->where('tanggal_mulai', '<=', date('Y-m-d'))
+            ->where('tanggal_selesai', '>=', date('Y-m-d'))
+            ->first();
         
         return inertia('User/Dashboard', [
             'user' => $user,

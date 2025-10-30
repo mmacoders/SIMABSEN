@@ -1,89 +1,94 @@
 <template>
-  <header class="top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur-md z-40 flex items-center justify-between px-6">
+  <header class="top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 shadow-sm backdrop-blur-md z-40 flex items-center justify-between px-4 md:px-6 sticky">
     <!-- Left Section -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 md:gap-4">
       <!-- Sidebar Toggle Button -->
       <button 
         @click="$emit('toggle-sidebar')"
-        class="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 ease-in-out"
+        class="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30"
         aria-label="Toggle sidebar"
       >
-        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
+        <MenuIcon class="w-5 h-5 text-gray-600" />
       </button>
 
       <!-- Breadcrumb Navigation -->
       <nav class="hidden md:block">
         <ol class="flex items-center space-x-2 text-sm">
           <li>
-            <a href="/user/dashboard" class="text-gray-500 hover:text-[#C62828] transition-colors">Dashboard</a>
+            <a href="/user/dashboard" class="text-gray-500 hover:text-[#dc2626] transition-colors duration-200 flex items-center">
+              <HomeIcon class="w-4 h-4 mr-1" />
+              Dashboard
+            </a>
           </li>
           <li>
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
+            <ChevronRightIcon class="w-4 h-4 text-gray-400" />
           </li>
           <li>
-            <span class="text-[#C62828] font-medium">{{ currentPage }}</span>
+            <span class="text-[#dc2626] font-medium flex items-center">
+              <span class="hidden lg:inline">{{ currentPage }}</span>
+              <span class="lg:hidden">{{ mobileBreadcrumb }}</span>
+            </span>
           </li>
         </ol>
       </nav>
       
       <!-- Mobile Breadcrumb -->
       <div class="md:hidden">
-        <span class="text-[#C62828] font-medium text-sm">{{ mobileBreadcrumb }}</span>
+        <span class="text-[#dc2626] font-medium text-sm">{{ mobileBreadcrumb }}</span>
       </div>
     </div>
 
     <!-- Right Section -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 md:gap-4">
       <!-- User Profile -->
-      <div class="relative">
+      <div class="relative" ref="dropdownContainer">
         <button 
           @click="toggleDropdown"
-          class="flex items-center gap-2 focus:outline-none"
+          class="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30 rounded-lg p-1 transition-colors duration-200"
           aria-label="User menu"
         >
-          <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm overflow-hidden">
+          <div v-if="user.profile_pict" class="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden">
             <img 
-              src="/avatar.png" 
-              alt="User avatar" 
-              class="w-full h-full object-cover hover:shadow-[0_0_0_2px_rgba(198,40,40,0.2)] transition-all duration-200"
+              :src="user.profile_pict" 
+              :alt="user.name + ' avatar'" 
+              class="w-full h-full object-cover"
+              @error="handleImageError"
             >
           </div>
+          <div v-else class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center text-gray-700 font-semibold text-sm">
+            {{ userInitials }}
+          </div>
           <span class="hidden md:inline text-gray-700 font-medium text-sm">{{ user.name }}</span>
-          <svg 
+          <ChevronDownIcon 
             class="hidden md:inline w-4 h-4 text-gray-500 transition-transform duration-200" 
             :class="{ 'rotate-180': isDropdownOpen }"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
+          />
         </button>
 
         <!-- Dropdown Menu -->
         <div 
           v-if="isDropdownOpen"
-          class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 border border-gray-100 transition-all duration-200 origin-top-right"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 border border-gray-100 transition-all duration-200 origin-top-right z-50"
           :class="{ 'opacity-100 scale-100': isDropdownOpen, 'opacity-0 scale-95': !isDropdownOpen }"
         >
+          <div class="px-4 py-2 border-b border-gray-100">
+            <p class="text-sm font-medium text-gray-900 truncate">{{ user.name }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ user.email || 'user@example.com' }}</p>
+          </div>
           <a 
             href="/user/profil" 
-            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center"
           >
+            <UserIcon class="w-4 h-4 mr-2 text-gray-500" />
             Profil Saya
           </a>
-          <a 
-            href="#" 
-            class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-            @click.prevent="logout"
+          <button 
+            @click="logout"
+            class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center"
           >
+            <LogOutIcon class="w-4 h-4 mr-2" />
             Logout
-          </a>
+          </button>
         </div>
       </div>
     </div>
@@ -91,8 +96,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { MenuIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, LogOutIcon, HomeIcon } from 'lucide-vue-next';
 
 // Define props
 const props = defineProps({
@@ -106,6 +112,13 @@ defineEmits(['toggle-sidebar']);
 
 // Dropdown state
 const isDropdownOpen = ref(false);
+const dropdownContainer = ref(null);
+
+// Computed property for user initials
+const userInitials = computed(() => {
+  if (!props.user || !props.user.name) return 'U';
+  return props.user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+});
 
 // Toggle dropdown
 const toggleDropdown = () => {
@@ -113,15 +126,48 @@ const toggleDropdown = () => {
 };
 
 // Close dropdown when clicking outside
-document.addEventListener('click', (event) => {
-  const dropdown = document.querySelector('.relative');
-  if (dropdown && !dropdown.contains(event.target)) {
+const handleClickOutside = (event) => {
+  if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
     isDropdownOpen.value = false;
   }
+};
+
+// Close dropdown when pressing Escape key
+const handleEscapeKey = (event) => {
+  if (event.key === 'Escape') {
+    isDropdownOpen.value = false;
+  }
+};
+
+// Add event listeners
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  document.addEventListener('keydown', handleEscapeKey);
+});
+
+// Remove event listeners
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', handleEscapeKey);
 });
 
 // Logout function
-  const logout = () => {
-    router.post(route('logout'));
-  };
-  </script>
+const logout = () => {
+  router.post(route('logout'));
+};
+
+// Handle image error - fallback to initials
+const handleImageError = (event) => {
+  // When image fails to load, we'll hide it and show initials instead
+  event.target.style.display = 'none';
+  // Find the parent element and add a fallback element with initials
+  const parent = event.target.closest('.rounded-full');
+  if (parent) {
+    // Create initials element
+    const initialsElement = document.createElement('div');
+    initialsElement.className = 'w-full h-full flex items-center justify-center text-gray-700 font-semibold text-sm';
+    initialsElement.textContent = userInitials.value;
+    parent.appendChild(initialsElement);
+  }
+};
+</script>

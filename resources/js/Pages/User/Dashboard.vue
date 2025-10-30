@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen bg-[#F8F9FA]">
+  <div class="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Sidebar -->
     <Sidebar 
       :sidebar-open="sidebarOpen"
@@ -18,39 +18,42 @@
       />
 
       <!-- Page Content -->
-      <main class="pt-16 p-4 sm:p-6 md:p-8">
+      <main class="pt-16 p-4 sm:p-6">
         <div class="max-w-7xl mx-auto">
           <!-- Greeting Section -->
-          <div class="mb-6">
-            <h4 class="text-2xl md:text-3xl font-bold text-[#111827]">{{ greeting }}</h4>
-            <p class="text-gray-600 mt-1">{{ currentDate }}</p>
+          <div class="mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">{{ greeting }}</h1>
+            <p class="text-gray-600 mt-2">{{ currentDate }}</p>
           </div>
 
           <!-- Info Cards Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- User Info Card -->
-            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-              <h2 class="text-lg font-semibold text-[#111827] mb-4">Informasi Pegawai</h2>
-              <div class="space-y-3">
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Nama</span>
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl lg:col-span-1">
+              <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <UserIcon class="w-6 h-6 text-[#dc2626] mr-2" />
+                Informasi Pegawai
+              </h2>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                  <span class="text-gray-500">Nama</span>
                   <span class="text-gray-900 font-medium">{{ user.name }}</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Bidang</span>
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                  <span class="text-gray-500">Bidang</span>
                   <span class="text-gray-900 font-medium">{{ user.bidang?.nama_bidang || '-' }}</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Pangkat/NIP/NRP</span>
-                  <span class="text-gray-900 font-medium">{{ user.pangkat }} / {{ user.nip || user.nrp }}</span>
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                  <span class="text-gray-500">Pangkat/NIP/NRP</span>
+                  <span class="text-gray-900 font-medium text-right">{{ user.pangkat }}<br>{{ user.nip || user.nrp }}</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Jam</span>
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                  <span class="text-gray-500">Jam</span>
                   <span class="text-gray-900 font-medium">{{ currentTime }}</span>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Status Hari Ini</span>
-                  <span :class="getStatusClass(todayStatus)" class="px-3 py-1 rounded-full text-xs font-semibold">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-500">Status Hari Ini</span>
+                  <span :class="getStatusClass(todayStatus)" class="px-3 py-1 rounded-full text-sm font-semibold">
                     {{ todayStatus }}
                   </span>
                 </div>
@@ -58,13 +61,19 @@
             </div>
 
             <!-- Attendance Card -->
-            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-              <h2 class="text-lg font-semibold text-[#111827] mb-4">Absensi Hari Ini</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl lg:col-span-2">
+              <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <CalendarCheckIcon class="w-6 h-6 text-[#dc2626] mr-2" />
+                Absensi Hari Ini
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <!-- Check-in Card -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 flex flex-col justify-between">
+                <div class="bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md">
                   <div>
-                    <h3 class="text-md font-semibold text-[#dc2626] mb-2">Check-in</h3>
+                    <h3 class="text-lg font-semibold text-[#dc2626] mb-2 flex items-center">
+                      <LogInIcon class="w-5 h-5 mr-2" />
+                      Check-in
+                    </h3>
                     <p class="text-sm text-gray-500 mb-3">
                       {{ todayAttendance && todayAttendance.waktu_masuk ? todayAttendance.waktu_masuk : 'Belum check-in' }}
                     </p>
@@ -72,20 +81,24 @@
                   <button
                     :disabled="hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh')"
                     @click="goToAbsensi"
-                    class="w-full py-2 rounded-lg font-semibold transition-all duration-200"
+                    class="w-full py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center transform hover:scale-[1.02]"
                     :class="{
-                      'bg-gray-200 text-gray-500 cursor-not-allowed': hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh'),
-                      'bg-[#dc2626] hover:bg-[#b91c1c] text-white hover:scale-[1.02]': !(hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh'))
+                      'bg-gray-100 text-gray-400 cursor-not-allowed': hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh'),
+                      'bg-[#dc2626] hover:bg-[#b91c1c] text-white shadow-md': !(hasCheckedIn || (todayIzin && todayIzin.jenis_izin === 'penuh'))
                     }"
                   >
+                    <LogInIcon v-if="!hasCheckedIn" class="w-5 h-5 mr-2" />
                     Check-in
                   </button>
                 </div>
 
                 <!-- Check-out Card -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 flex flex-col justify-between">
+                <div class="bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md">
                   <div>
-                    <h3 class="text-md font-semibold text-[#111827] mb-2">Check-out</h3>
+                    <h3 class="text-lg font-semibold text-[#111827] mb-2 flex items-center">
+                      <LogOutIcon class="w-5 h-5 mr-2" />
+                      Check-out
+                    </h3>
                     <p class="text-sm text-gray-500 mb-3">
                       {{ todayAttendance && todayAttendance.waktu_keluar ? todayAttendance.waktu_keluar : 'Belum check-out' }}
                     </p>
@@ -93,62 +106,83 @@
                   <button
                     :disabled="!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)')"
                     @click="goToAbsensi"
-                    class="w-full py-2 rounded-lg font-semibold transition-all duration-200"
+                    class="w-full py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center transform hover:scale-[1.02]"
                     :class="{
-                      'bg-gray-200 text-gray-500 cursor-not-allowed': !hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'),
-                      'bg-[#111827] hover:bg-[#000000] text-white hover:scale-[1.02]': !(!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'))
+                      'bg-gray-100 text-gray-400 cursor-not-allowed': !hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'),
+                      'bg-[#111827] hover:bg-[#000000] text-white shadow-md': !(!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'))
                     }"
                   >
+                    <LogOutIcon v-if="!(!hasCheckedIn || hasCheckedOut || (todayIzin && todayIzin.jenis_izin === 'penuh') || (todayAttendance && todayAttendance.status === 'Izin Parsial (Check-in)'))" class="w-5 h-5 mr-2" />
                     Check-out
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Attendance History -->
-        <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 mb-8">
-          <h2 class="text-lg font-semibold text-[#111827] mb-4">Riwayat Absensi (1 Minggu Terakhir)</h2>
-            <div class="overflow-x-auto">
+          <!-- Attendance History -->
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 transition-all duration-300 hover:shadow-xl">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                <HistoryIcon class="w-6 h-6 text-[#dc2626] mr-2" />
+                Riwayat Absensi (1 Minggu Terakhir)
+              </h2>
+              <button 
+                @click="goToAbsensi" 
+                class="text-sm px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center"
+              >
+                <CalendarIcon class="w-4 h-4 mr-2" />
+                Lihat Semua
+              </button>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
               <table class="min-w-full">
                 <thead>
-                  <tr class="bg-[#dc2626] text-white text-left uppercase text-xs font-semibold tracking-wider">
-                    <th class="px-4 py-3">Tanggal</th>
-                    <th class="px-4 py-3">Masuk</th>
-                    <th class="px-4 py-3">Keluar</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Keterangan</th>
+                  <tr class="bg-gray-50 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                    <th class="px-6 py-4">Tanggal</th>
+                    <th class="px-6 py-4">Masuk</th>
+                    <th class="px-6 py-4">Keluar</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Keterangan</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr v-for="attendance in attendanceHistory" :key="attendance.id" class="border-b hover:bg-red-50 transition-all">
-                    <td class="px-4 py-3 text-gray-900">{{ formatDate(attendance.tanggal) }}</td>
-                    <td class="px-4 py-3 text-gray-900">{{ attendance.waktu_masuk || '-' }}</td>
-                    <td class="px-4 py-3 text-gray-900">{{ attendance.waktu_keluar || '-' }}</td>
-                    <td class="px-4 py-3">
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="attendance in attendanceHistory" :key="attendance.id" class="hover:bg-gray-50 transition-colors duration-150">
+                    <td class="px-6 py-4 text-gray-900 text-sm">{{ formatDate(attendance.tanggal) }}</td>
+                    <td class="px-6 py-4 text-gray-900 text-sm">{{ attendance.waktu_masuk || '-' }}</td>
+                    <td class="px-6 py-4 text-gray-900 text-sm">{{ attendance.waktu_keluar || '-' }}</td>
+                    <td class="px-6 py-4">
                       <span :class="getAttendanceStatusClass(attendance)" class="px-3 py-1 rounded-full text-xs font-semibold">
                         {{ getAttendanceStatusText(attendance) }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-gray-900">{{ attendance.keterangan || '-' }}</td>
+                    <td class="px-6 py-4 text-gray-900 text-sm max-w-xs">{{ attendance.keterangan || '-' }}</td>
                   </tr>
                   <tr v-if="attendanceHistory.length === 0">
-                    <td colspan="5" class="px-4 py-3 text-center text-gray-500">Tidak ada data absensi</td>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-500 text-sm">
+                      <CalendarXIcon class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p class="text-lg font-medium text-gray-500">Tidak ada data absensi</p>
+                      <p class="text-gray-400 mt-1">Belum ada riwayat absensi</p>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-        <!-- Map Location -->
-        <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <h2 class="text-lg font-semibold text-[#111827] mb-4">📍 Lokasi Kantor POLRES TIK</h2>
-          <div class="h-64 w-full rounded-xl overflow-hidden mt-2 bg-gray-100">
-            <div ref="mapContainer" class="w-full h-full"></div>
-          </div>
-          <div class="mt-2 text-sm text-gray-600">
-            <p>Koordinat: {{ officeLocation.lat }}, {{ officeLocation.lng }}</p>
+          <!-- Map Location -->
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <MapPinIcon class="w-6 h-6 text-[#dc2626] mr-2" />
+              📍 Lokasi Kantor POLRES TIK
+            </h2>
+            <div class="h-72 w-full rounded-xl overflow-hidden mt-2 bg-gradient-to-br from-gray-100 to-gray-200">
+              <div ref="mapContainer" class="w-full h-full"></div>
+            </div>
+            <div class="mt-4 text-sm text-gray-600 flex items-center">
+              <MapPinIcon class="w-4 h-4 mr-2 text-[#dc2626]" />
+              <p>Koordinat: {{ officeLocation.lat }}, {{ officeLocation.lng }}</p>
+            </div>
           </div>
         </div>
       </main>
@@ -163,6 +197,16 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { 
+  UserIcon, 
+  CalendarCheckIcon, 
+  LogInIcon, 
+  LogOutIcon, 
+  HistoryIcon, 
+  MapPinIcon,
+  CalendarIcon,
+  CalendarXIcon
+} from 'lucide-vue-next';
 
 const props = defineProps({
     user: Object,
@@ -227,9 +271,10 @@ const initMap = () => {
   // Add marker for office location
   marker.value = L.marker([officeLocation.lat, officeLocation.lng], {
     icon: L.divIcon({
-      className: 'bg-red-600 rounded-full w-6 h-6 border-2 border-white shadow-lg',
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
+      className: 'bg-red-600 rounded-full w-8 h-8 border-2 border-white shadow-lg flex items-center justify-center',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      html: '<div class="w-6 h-6 bg-white rounded-full flex items-center justify-center"><div class="w-3 h-3 bg-red-600 rounded-full"></div></div>'
     })
   }).addTo(mapInstance.value);
   
@@ -331,28 +376,28 @@ const formatDate = (dateString) => {
 const getStatusClass = (status) => {
   switch (status) {
     case 'Belum Check-in':
-      return 'bg-gray-200 text-gray-700';
+      return 'bg-gray-100 text-gray-700';
     case 'Sudah Check-in':
       return 'bg-red-100 text-red-700';
     case 'Selesai':
-      return 'bg-black text-white';
+      return 'bg-gray-900 text-white';
     case 'Izin (Valid)':
     case 'Sudah Check-in (Izin Parsial)':
       return 'bg-pink-100 text-pink-700';
     default:
-      return 'bg-gray-200 text-gray-700';
+      return 'bg-gray-100 text-gray-700';
   }
 };
 
 const getAttendanceStatusClass = (attendance) => {
   if (attendance.status === 'Izin (Valid)' || attendance.status === 'Izin' || attendance.status === 'Izin Parsial (Check-in)' || attendance.status === 'Izin Parsial (Selesai)') {
-    return 'bg-gray-200 text-gray-700';
+    return 'bg-gray-100 text-gray-700';
   } else if (attendance.status === 'terlambat') {
     return 'bg-red-100 text-red-700';
   } else if (attendance.waktu_masuk && !attendance.status) {
     return 'bg-green-100 text-green-700';
   } else {
-    return 'bg-gray-200 text-gray-700';
+    return 'bg-gray-100 text-gray-700';
   }
 };
 </script>

@@ -31,10 +31,20 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/pegawai', [App\Http\Controllers\Admin\PegawaiController::class, 'index'])->name('admin.pegawai');
     Route::get('/admin/pegawai/{user}', [App\Http\Controllers\Admin\PegawaiController::class, 'show'])->name('admin.pegawai.show');
+    Route::patch('/admin/pegawai/{user}', [App\Http\Controllers\Admin\PegawaiController::class, 'update'])->name('admin.pegawai.update');
+    Route::patch('/admin/pegawai/{user}/toggle-status', [App\Http\Controllers\Admin\PegawaiController::class, 'toggleStatus'])->name('admin.pegawai.toggle-status');
+    Route::post('/admin/pegawai/{user}/reset-password', [App\Http\Controllers\Admin\PegawaiController::class, 'resetPassword'])->name('admin.pegawai.reset-password');
     Route::get('/admin/laporan', [App\Http\Controllers\Admin\LaporanController::class, 'index'])->name('admin.laporan');
     Route::post('/admin/laporan/export', [App\Http\Controllers\Admin\LaporanController::class, 'export'])->name('admin.laporan.export');
+    // Izin & Cuti routes
+    Route::get('/admin/izin', [App\Http\Controllers\Admin\IzinController::class, 'index'])->name('admin.izin');
+    Route::patch('/admin/izin/{izin}', [App\Http\Controllers\Admin\IzinController::class, 'update'])->name('admin.izin.update');
     // Route for marking absent users
     Route::post('/admin/absensi/mark-absent', [App\Http\Controllers\User\AbsensiController::class, 'markAbsentUsers'])->name('admin.absensi.mark-absent');
+    // Profil routes
+    Route::get('/admin/profil', [App\Http\Controllers\Admin\ProfilController::class, 'index'])->name('admin.profil');
+    Route::match(['patch', 'post'], '/admin/profil', [App\Http\Controllers\Admin\ProfilController::class, 'update'])->name('admin.profil.update');
+    Route::patch('/admin/profil/password', [App\Http\Controllers\Admin\ProfilController::class, 'updatePassword'])->name('admin.profil.password');
 });
 
 // SuperAdmin routes
@@ -55,8 +65,10 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     
     // Pegawai Management
     Route::get('/superadmin/pegawai', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'index'])->name('superadmin.pegawai');
+    Route::post('/superadmin/pegawai', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'store'])->name('superadmin.pegawai.store');
     Route::get('/superadmin/pegawai/{user}', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'show'])->name('superadmin.pegawai.show');
     Route::patch('/superadmin/pegawai/{user}', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'update'])->name('superadmin.pegawai.update');
+    Route::delete('/superadmin/pegawai/{user}', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'destroy'])->name('superadmin.pegawai.destroy');
     Route::patch('/superadmin/pegawai/{user}/toggle-status', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'toggleStatus'])->name('superadmin.pegawai.toggle-status');
     Route::post('/superadmin/pegawai/{user}/reset-password', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'resetPassword'])->name('superadmin.pegawai.reset-password');
     
@@ -73,6 +85,11 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     
     // Route for marking absent users (also available for super admin)
     Route::post('/superadmin/absensi/mark-absent', [App\Http\Controllers\User\AbsensiController::class, 'markAbsentUsers'])->name('superadmin.absensi.mark-absent');
+    
+    // Profil routes
+    Route::get('/superadmin/profil', [App\Http\Controllers\SuperAdmin\ProfilController::class, 'index'])->name('superadmin.profil');
+    Route::match(['patch', 'post'], '/superadmin/profil', [App\Http\Controllers\SuperAdmin\ProfilController::class, 'update'])->name('superadmin.profil.update');
+    Route::patch('/superadmin/profil/password', [App\Http\Controllers\SuperAdmin\ProfilController::class, 'updatePassword'])->name('superadmin.profil.password');
 });
 
 // API routes for system settings

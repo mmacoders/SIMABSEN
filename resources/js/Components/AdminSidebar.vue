@@ -1,6 +1,6 @@
 <template>
   <aside 
-    class="bg-[#111827] text-white flex flex-col fixed h-screen transition-all ease-in-out duration-300 shadow-xl z-30 font-['Inter']"
+    class="bg-[#111827] text-white flex flex-col fixed h-screen transition-all ease-in-out duration-300 shadow-xl z-30 font-sans"
     :class="[
       isCollapsed ? 'w-20' : 'w-64',
       { 'hidden md:block': !sidebarOpen }
@@ -9,19 +9,23 @@
     <!-- Sidebar Header with Logo and Toggle Button -->
     <div class="px-4 py-4 border-b border-gray-800 flex items-center justify-between">
       <transition name="fade" mode="out-in">
-        <div v-if="!isCollapsed" key="full-logo" class="flex items-center gap-3">
-          <img src="/logo-polda.svg" alt="Logo POLDA" class="w-10" />
-          <span class="font-bold text-lg">POLDA TIK</span>
+        <div v-if="!isCollapsed" key="full-logo" class="flex items-center gap-2">
+          <img src="/images/logo-tik-polri.png" alt="Logo TIK POLRI" class="w-12 h-auto rounded-sm" />
+          <div class="flex flex-col">
+            <span class="font-bold text-sm text-white leading-tight">Absensi</span>
+            <span class="font-semibold text-xs text-gray-300 leading-tight">TIK POLRI</span>
+          </div>
         </div>
         <div v-else key="collapsed-logo" class="flex justify-center w-full">
-          <img src="/logo-polda.svg" alt="Logo POLDA" class="w-10" />
+          <img src="/images/logo-tik-polri.png" alt="Logo TIK POLRI" class="w-12 h-auto rounded-sm" />
         </div>
       </transition>
       
       <button 
         @click="toggleCollapse" 
-        class="p-2 rounded-lg hover:bg-[#1E1E1E] transition-colors duration-200"
+        class="p-2 rounded-lg hover:bg-[#1E1E1E] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/50"
         :class="{ 'ml-auto': !isCollapsed }"
+        :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
       >
         <ChevronLeftIcon v-if="!isCollapsed" class="w-5 h-5" />
         <ChevronRightIcon v-else class="w-5 h-5" />
@@ -36,10 +40,10 @@
             :is="item.component"
             :href="item.href"
             :class="[
-              'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group',
+              'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group relative',
               isCurrentPage(item.href) 
-                ? 'bg-[#dc2626] text-white font-semibold' 
-                : 'hover:bg-[#dc2626]/30 text-gray-300'
+                ? 'bg-[#dc2626] text-white font-semibold shadow-md' 
+                : 'hover:bg-[#dc2626]/20 text-gray-300 hover:text-white'
             ]"
             @click="handleMenuClick"
           >
@@ -50,15 +54,21 @@
             />
             
             <transition name="fade">
-              <span v-if="!isCollapsed" class="text-sm">
+              <span v-if="!isCollapsed" class="text-sm font-medium">
                 {{ item.name }}
               </span>
             </transition>
             
+            <!-- Active indicator -->
+            <div 
+              v-if="isCurrentPage(item.href) && !isCollapsed"
+              class="absolute right-0 top-0 bottom-0 w-1 bg-white rounded-l-full"
+            ></div>
+            
             <!-- Tooltip for collapsed state -->
             <div 
               v-if="isCollapsed" 
-              class="absolute left-full ml-3 px-2 py-1 bg-[#111827] text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50"
+              class="absolute left-full ml-3 px-3 py-2 bg-[#111827] text-white text-sm font-medium rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50"
             >
               {{ item.name }}
               <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 w-2 h-2 bg-[#111827] rotate-45"></div>
@@ -67,6 +77,20 @@
         </li>
       </ul>
     </nav>
+    
+    <!-- Sidebar Footer -->
+    <div class="px-3 py-4 border-t border-gray-800">
+      <button 
+        @click="logout"
+        class="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-gray-300 hover:bg-red-900/30 hover:text-white transition-colors duration-200"
+        :class="{ 'justify-center': isCollapsed }"
+      >
+        <LogOutIcon class="w-5 h-5 flex-shrink-0" />
+        <transition name="fade">
+          <span v-if="!isCollapsed" class="text-sm font-medium">Keluar</span>
+        </transition>
+      </button>
+    </div>
   </aside>
 </template>
 
@@ -79,7 +103,8 @@ import {
   ClipboardListIcon,
   UsersIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  LogOutIcon
 } from 'lucide-vue-next';
 
 // Props
@@ -139,6 +164,10 @@ const handleMenuClick = () => {
   if (window.innerWidth < 768) {
     emit('update:sidebarOpen', false);
   }
+};
+
+const logout = () => {
+  router.post('/logout');
 };
 
 // Watch for route changes to update active state

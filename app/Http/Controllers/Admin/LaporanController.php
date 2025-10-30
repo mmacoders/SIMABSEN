@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class LaporanController extends Controller
 {
@@ -53,16 +54,17 @@ class LaporanController extends Controller
                         $query->where('bidang_id', $admin->bidang_id);
                     })
                     ->whereBetween('tanggal', [$startDate, $endDate])
-                    ->with('user')
+                    ->join('users', 'absensis.user_id', '=', 'users.id')
+                    ->select('absensis.*', 'users.name as user_name')
                     ->orderBy('tanggal', 'desc')
-                    ->orderBy('user.name')
+                    ->orderBy('users.name')
                     ->get();
         
         // Create CSV content
         $csvData = "Nama,Tanggal,Masuk,Keluar,Status,Keterangan\n";
         
         foreach ($attendances as $attendance) {
-            $csvData .= '"' . $attendance->user->name . '",';
+            $csvData .= '"' . $attendance->user_name . '",';
             $csvData .= '"' . $attendance->tanggal . '",';
             $csvData .= '"' . ($attendance->waktu_masuk ?? '-') . '",';
             $csvData .= '"' . ($attendance->waktu_keluar ?? '-') . '",';

@@ -18,26 +18,40 @@ class IzinSeeder extends Seeder
         $users = User::where('role', 'user')->take(5)->get();
         
         foreach ($users as $index => $user) {
-            // Create full leave for some users
-            if ($index % 2 == 0) {
-                Izin::create([
-                    'user_id' => $user->id,
-                    'tanggal_mulai' => date('Y-m-d'),
-                    'tanggal_selesai' => date('Y-m-d'),
-                    'jenis_izin' => 'penuh',
-                    'keterangan' => 'Sakit demam',
-                    'disetujui_oleh' => 'Admin',
-                ]);
-            } else {
-                // Create partial leave for other users
-                Izin::create([
-                    'user_id' => $user->id,
-                    'tanggal_mulai' => date('Y-m-d'),
-                    'tanggal_selesai' => date('Y-m-d'),
-                    'jenis_izin' => 'parsial',
-                    'keterangan' => 'Mengurus dokumen penting',
-                    'disetujui_oleh' => 'Admin',
-                ]);
+            // Check if an izin already exists for this user and date
+            $existingIzin = Izin::where('user_id', $user->id)
+                ->where('tanggal_mulai', date('Y-m-d'))
+                ->first();
+                
+            if (!$existingIzin) {
+                $tanggal = date('Y-m-d');
+                // Create full leave for some users
+                if ($index % 2 == 0) {
+                    Izin::create([
+                        'user_id' => $user->id,
+                        'tanggal' => $tanggal,
+                        'tanggal_mulai' => $tanggal,
+                        'tanggal_selesai' => $tanggal,
+                        'jenis_izin' => 'penuh',
+                        'keterangan' => 'Sakit demam',
+                        'disetujui_oleh' => null,
+                        'status' => 'pending',
+                        'catatan' => null,
+                    ]);
+                } else {
+                    // Create partial leave for other users
+                    Izin::create([
+                        'user_id' => $user->id,
+                        'tanggal' => $tanggal,
+                        'tanggal_mulai' => $tanggal,
+                        'tanggal_selesai' => $tanggal,
+                        'jenis_izin' => 'parsial',
+                        'keterangan' => 'Mengurus dokumen penting',
+                        'disetujui_oleh' => null,
+                        'status' => 'approved',
+                        'catatan' => 'Dokumen sudah diverifikasi',
+                    ]);
+                }
             }
         }
     }

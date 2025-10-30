@@ -1,589 +1,706 @@
 <template>
-    <div class="flex min-h-screen bg-[#F5F6FA]">
-        <!-- Sidebar -->
-        <SuperAdminSidebar 
-          :sidebar-open="sidebarOpen"
-          @update:sidebarOpen="sidebarOpen = $event"
-          @toggle-collapse="handleSidebarCollapse"
-        />
-        
-        <!-- Main Content -->
-        <div class="flex-1" :class="sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'">
-            <!-- Header -->
-            <header class="bg-white shadow-md z-10">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16 items-center">
-                        <div class="flex items-center">
-                            <button 
-                                @click="toggleSidebar" 
-                                class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 mr-2"
-                            >
-                                <MenuIcon class="h-6 w-6" />
-                            </button>
-                            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Kelola Pegawai</h2>
+  <div class="flex min-h-screen bg-[#F5F6FA] font-sans">
+    <!-- Sidebar -->
+    <SuperAdminSidebar 
+      :sidebar-open="sidebarOpen"
+      @update:sidebarOpen="sidebarOpen = $event"
+      @toggle-collapse="handleSidebarCollapse"
+    />
+    
+    <!-- Main Content -->
+    <div class="flex-1" :class="sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'">
+      <!-- Header -->
+      <SuperAdminHeader 
+        title="Kelola Pegawai"
+        :user-profile-pic="$page.props.auth.user.profile_pict_url"
+        @toggle-sidebar="toggleSidebar"
+      />
+
+      <main class="py-7">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+          <!-- Success/Error Messages -->
+          <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded">
+            {{ $page.props.flash.success }}
+          </div>
+          <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded">
+            {{ $page.props.flash.error }}
+          </div>
+
+          <!-- Page Title + Search + Button -->
+          <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <!-- Kiri: Title + Description -->
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <UsersIcon class="text-red-600" />
+                Manajemen Pegawai
+              </h2>
+              <p class="text-gray-600 mt-2">
+                Kelola data pegawai, lihat detail, dan atur status keaktifan pegawai.
+              </p>
+            </div>
+
+            <!-- Kanan: Search + Button -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <!-- Search Bar -->
+              <div class="relative">
+                <SearchIcon
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                />
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Cari pegawai..."
+                  class="pl-10 pr-4 py-2 border border-gray-400 rounded-lg w-full md:w-64"
+                  @input="handleSearch"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Pegawai List Card -->
+          <div class="bg-white shadow-md rounded-2xl">
+            <!-- Header Section -->
+
+            <!-- Pegawai Table -->
+            <div class="overflow-x-auto rounded-lg">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-[#ad1f32] border-b border-gray-400">
+                  <tr>
+                    <th scope="col" class="px-10 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      Nama
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      Bidang
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-white uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr 
+                    v-for="user in paginatedUsers"
+                    :key="user.id"
+                    class="hover:bg-gray-50 transition-all duration-300"
+                  >
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <div v-if="user.profile_pict_url" class="w-10 h-10 rounded-full overflow-hidden mr-3">
+                          <img :src="user.profile_pict_url" :alt="user.name" class="w-full h-full object-cover">
                         </div>
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
-                                <button class="p-2 rounded-full hover:bg-gray-100">
-                                    <BellIcon class="h-5 w-5 text-gray-600" />
-                                </button>
-                            </div>
-                            <div class="relative">
-                                <button @click="toggleProfileMenu" class="flex items-center space-x-2 focus:outline-none">
-                                    <div class="h-8 w-8 rounded-full bg-[#C62828] flex items-center justify-center text-white font-semibold">
-                                        SA
-                                    </div>
-                                    <span class="text-gray-700 hidden md:block">Super Admin</span>
-                                    <ChevronDownIcon class="h-4 w-4 text-gray-500 hidden md:block" />
-                                </button>
-                                <!-- Profile Dropdown -->
-                                <div v-if="profileMenuOpen" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                                    <div class="py-1">
-                                        <Link :href="route('profile.edit')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <UserIcon class="h-4 w-4 inline mr-2" />
-                                            Profil
-                                        </Link>
-                                        <button @click="logout" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <LogOutIcon class="h-4 w-4 inline mr-2" />
-                                            Keluar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div v-else class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                          <UserIcon class="h-5 w-5 text-gray-500" />
                         </div>
-                    </div>
-                </div>
-            </header>
-
-            <main class="py-8">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <!-- Success/Error Messages -->
-                    <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
-                        {{ $page.props.flash.success }}
-                    </div>
-                    <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-                        {{ $page.props.flash.error }}
-                    </div>
-
-                    <div class="mb-6">
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-                            <UsersIcon class="text-red-600" />
-                            Data Pegawai
-                        </h1>
-                        <p class="text-gray-600">Kelola data pegawai POLDA TIK.</p>
-                    </div>
-
-                    <!-- Filters -->
-                    <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Cari Pegawai</label>
-                                <div class="relative">
-                                    <input
-                                        type="text"
-                                        v-model="filters.search"
-                                        placeholder="Nama atau bidang..."
-                                        class="w-full border border-gray-300 rounded-lg p-2 pl-10"
-                                        @input="debounceSearch"
-                                    />
-                                    <SearchIcon class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
-                                <select
-                                    v-model="filters.bidang_id"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    @change="applyFilters"
-                                >
-                                    <option value="">Semua Bidang</option>
-                                    <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                                        {{ bidang.nama_bidang }}
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select
-                                    v-model="filters.status"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    @change="applyFilters"
-                                >
-                                    <option value="">Semua Status</option>
-                                    <option value="aktif">Aktif</option>
-                                    <option value="nonaktif">Nonaktif</option>
-                                </select>
-                            </div>
-                            
-                            <div class="flex items-end">
-                                <button
-                                    @click="resetFilters"
-                                    class="w-full border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition-all duration-200 ease-in-out"
-                                >
-                                    Reset Filter
-                                </button>
-                            </div>
+                        <div>
+                          <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
+                          <div class="text-sm text-gray-500">{{ user.jabatan || '-' }}</div>
                         </div>
-                    </div>
-
-                    <!-- Pegawai Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        <div 
-                            v-for="user in users.data" 
-                            :key="user.id"
-                            class="relative bg-white rounded-2xl shadow-md p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer"
-                            :class="user.status === 'nonaktif' ? 'grayscale' : ''"
-                            @click="viewDetail(user)"
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm">{{ user.email }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm">{{ user.bidang?.nama_bidang || '-' }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span 
+                        :class="user.status === 'aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
+                        class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      >
+                        {{ user.status === 'aktif' ? 'Aktif' : 'Nonaktif' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center align-middle">
+                      <div class="inline-flex justify-center items-center space-x-3">
+                        <button 
+                          @click="viewDetail(user)"
+                          class="text-blue-600 hover:text-blue-800 p-1 rounded transition-all duration-300"
+                          title="Detail"
                         >
-                            <!-- Status Indicator -->
-                            <div class="absolute top-3 right-3">
-                                <div 
-                                    v-if="user.status === 'aktif'" 
-                                    class="w-3 h-3 rounded-full bg-red-500"
-                                    title="Aktif"
-                                ></div>
-                                <div 
-                                    v-else 
-                                    class="w-3 h-3 rounded-full bg-gray-300"
-                                    title="Nonaktif"
-                                ></div>
-                            </div>
-                            
-                            <!-- Profile Picture -->
-                            <div class="flex justify-center mb-4">
-                                <img 
-                                    :src="user.profile_pict_url || '/images/default-profile.png'" 
-                                    :alt="user.name"
-                                    class="w-20 h-20 rounded-full ring-2 ring-red-500 object-cover"
-                                    @error="handleImageError"
-                                />
-                            </div>
-                            
-                            <!-- User Info -->
-                            <div class="text-center">
-                                <h3 class="font-semibold text-gray-900 truncate">{{ user.name }}</h3>
-                                <p class="text-sm text-gray-600 truncate">{{ user.bidang?.nama_bidang || '-' }}</p>
-                                <p class="text-sm text-gray-500 truncate">{{ user.jabatan || '-' }}</p>
-                                
-                                <!-- Status Badge -->
-                                <div class="mt-3">
-                                    <span 
-                                        v-if="user.status === 'aktif'"
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700"
-                                    >
-                                        Aktif
-                                    </span>
-                                    <span 
-                                        v-else
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600"
-                                    >
-                                        Nonaktif
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <!-- Overlay Actions -->
-                            <div 
-                                class="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center gap-3 transition-all duration-300 rounded-2xl"
-                                @click.stop
-                            >
-                                <button 
-                                    @click="editUser(user)"
-                                    class="bg-white text-red-600 px-3 py-1 rounded-lg font-medium hover:bg-red-100 transition"
-                                    title="Edit Profil"
-                                >
-                                    <EditIcon class="h-4 w-4" />
-                                </button>
-                                <button 
-                                    @click="toggleUserStatus(user)"
-                                    class="bg-red-600 text-white px-3 py-1 rounded-lg font-medium hover:bg-red-700 transition"
-                                    :title="user.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'"
-                                >
-                                    <BanIcon v-if="user.status === 'aktif'" class="h-4 w-4" />
-                                    <CheckIcon v-else class="h-4 w-4" />
-                                </button>
-                                <button 
-                                    @click="resetUserPassword(user)"
-                                    class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg font-medium hover:bg-gray-200 transition"
-                                    title="Reset Password"
-                                >
-                                    <RefreshCwIcon class="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Empty State -->
-                        <div v-if="users.data.length === 0" class="col-span-full text-center py-12">
-                            <UsersIcon class="h-12 w-12 text-gray-400 mx-auto" />
-                            <h3 class="mt-2 text-lg font-medium text-gray-900">Tidak ada data pegawai</h3>
-                            <p class="mt-1 text-gray-500">Coba ubah filter pencarian Anda.</p>
-                        </div>
-                    </div>
+                          <EyeIcon class="h-5 w-5" />
+                        </button>
+                        <button 
+                          @click="editUser(user)"
+                          class="text-[#C62828] hover:text-[#b71c1c] p-1 rounded transition-all duration-300"
+                          title="Edit"
+                        >
+                          <EditIcon class="h-5 w-5" />
+                        </button>
+                        <button 
+                          @click="resetPassword(user)"
+                          class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
+                          title="Reset Password"
+                        >
+                          <LockIcon class="h-5 w-5" />
+                        </button>
+                        <button 
+                          @click="openDeleteModal(user)"
+                          class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
+                          title="Hapus"
+                        >
+                          <TrashIcon class="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="paginatedUsers.length === 0">
+                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                      Tidak ada data pegawai tersedia
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-                    <!-- Pagination -->
-                    <div class="mt-8 flex justify-center">
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <template v-for="(link, index) in users.links" :key="index">
-                                <span 
-                                    v-if="link.url === null" 
-                                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed rounded-lg"
-                                >
-                                    {{ link.label }}
-                                </span>
-                                <a 
-                                    v-else-if="link.label === 'pagination.previous'" 
-                                    :href="link.url"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg"
-                                    :class="link.active ? 'z-10 bg-red-600 text-white border-red-600' : ''"
-                                >
-                                    <ChevronLeftIcon class="h-5 w-5" />
-                                </a>
-                                <a 
-                                    v-else-if="link.label === 'pagination.next'" 
-                                    :href="link.url"
-                                    class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg"
-                                    :class="link.active ? 'z-10 bg-red-600 text-white border-red-600' : ''"
-                                >
-                                    <ChevronRightIcon class="h-5 w-5" />
-                                </a>
-                                <a 
-                                    v-else 
-                                    :href="link.url"
-                                    class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg"
-                                    :class="link.active ? 'z-10 bg-red-600 text-white border-red-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'"
-                                >
-                                    {{ link.label }}
-                                </a>
-                            </template>
-                        </nav>
-                    </div>
-                </div>
-            </main>
+            <!-- Pagination -->
+            <Pagination 
+              :current-page="currentPage"
+              :total-pages="totalPages"
+              :visible-pages="visiblePages"
+              :start-index="startIndex"
+              :per-page="usersPerPage"
+              :total-items="filteredUsers.length"
+              @prev-page="prevPage"
+              @next-page="nextPage"
+              @go-to-page="goToPage"
+            />
+          </div>
         </div>
-        
-        <!-- Edit User Modal -->
-        <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm z-50">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 animate-fadeIn">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-900">Edit Pegawai</h3>
-                    <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700">
-                        <XIcon class="h-5 w-5" />
-                    </button>
+      </main>
+
+      <!-- Create/Edit Modal -->
+      <Modal :show="showCreateModal || showEditModal" @close="closeModal">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            {{ showEditModal ? 'Edit Pegawai' : 'Tambah Pegawai' }}
+          </h3>
+
+          <form @submit.prevent="handleSubmit" class="space-y-6 font-['Inter']">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <InputLabel for="name" value="Nama Lengkap" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="name"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.name"
+                  required
+                  autofocus
+                />
+                <InputError class="mt-2" :message="userForm.errors.name" />
+              </div>
+
+              <div>
+                <InputLabel for="email" value="Email" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="email"
+                  type="email"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.email"
+                  required
+                />
+                <InputError class="mt-2" :message="userForm.errors.email" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <InputLabel for="pangkat" value="Pangkat" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="pangkat"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.pangkat"
+                  required
+                />
+                <InputError class="mt-2" :message="userForm.errors.pangkat" />
+              </div>
+
+              <div>
+                <InputLabel for="nrp" value="NRP" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="nrp"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.nrp"
+                  required
+                />
+                <InputError class="mt-2" :message="userForm.errors.nrp" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <InputLabel for="nip" value="NIP" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="nip"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.nip"
+                />
+                <InputError class="mt-2" :message="userForm.errors.nip" />
+              </div>
+
+              <div>
+                <InputLabel for="no_hp" value="No. HP" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="no_hp"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.no_hp"
+                />
+                <InputError class="mt-2" :message="userForm.errors.no_hp" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <InputLabel for="bidang_id" value="Bidang" class="text-gray-700 font-medium" />
+                <select
+                  id="bidang_id"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.bidang_id"
+                  required
+                >
+                  <option value="">Pilih Bidang</option>
+                  <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
+                    {{ bidang.nama_bidang }}
+                  </option>
+                </select>
+                <InputError class="mt-2" :message="userForm.errors.bidang_id" />
+              </div>
+
+              <div>
+                <InputLabel for="jabatan" value="Jabatan" class="text-gray-700 font-medium" />
+                <TextInput
+                  id="jabatan"
+                  type="text"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.jabatan"
+                  required
+                />
+                <InputError class="mt-2" :message="userForm.errors.jabatan" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <InputLabel for="status" value="Status" class="text-gray-700 font-medium" />
+                <select
+                  id="status"
+                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
+                  v-model="userForm.status"
+                  required
+                >
+                  <option value="aktif">Aktif</option>
+                  <option value="nonaktif">Nonaktif</option>
+                </select>
+                <InputError class="mt-2" :message="userForm.errors.status" />
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-4 pt-4">
+              <SecondaryButton 
+                @click="closeModal" 
+                type="button"
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-all duration-300"
+              >
+                Batal
+              </SecondaryButton>
+              <PrimaryButton 
+                :disabled="userForm.processing"
+                class="px-4 py-2 bg-[#C62828] text-white rounded-lg hover:bg-[#b71c1c] transition-all duration-300"
+              >
+                {{ showEditModal ? 'Update' : 'Simpan' }}
+              </PrimaryButton>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      <!-- Detail View Modal (Following Admin style) -->
+      <div v-if="showDetailModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-xl font-bold text-gray-900">Detail Pegawai</h3>
+              <button @click="closeDetailModal" class="text-gray-500 hover:text-gray-700">
+                <XIcon class="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="md:col-span-1">
+                <div class="bg-gray-100 rounded-2xl p-6 flex flex-col items-center">
+                  <img 
+                    :src="detailUser.profile_pict_url || '/images/profile.png'" 
+                    :alt="detailUser.name"
+                    class="w-32 h-32 rounded-full ring-4 ring-red-500 object-cover mb-4"
+                    @error="handleImageError"
+                  />
+                  <h4 class="text-lg font-bold text-gray-900">{{ detailUser.name }}</h4>
+                  <p class="text-gray-600">{{ detailUser.jabatan }}</p>
+                  <div class="mt-3">
+                    <span 
+                      v-if="detailUser.status === 'aktif'"
+                      class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800"
+                    >
+                      Aktif
+                    </span>
+                    <span 
+                      v-else
+                      class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800"
+                    >
+                      Nonaktif
+                    </span>
+                  </div>
                 </div>
-                
-                <form @submit.prevent="updateUser">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                            <input
-                                v-model="editForm.name"
-                                type="text"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            />
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                v-model="editForm.email"
-                                type="email"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            />
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
-                                <input
-                                    v-model="editForm.phone"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Pangkat</label>
-                                <input
-                                    v-model="editForm.pangkat"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">NIP/NRP</label>
-                            <input
-                                v-model="nipOrNrp"
-                                type="text"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                :placeholder="hasNip ? 'NIP' : 'NRP'"
-                            />
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
-                                <select
-                                    v-model="editForm.bidang_id"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    required
-                                >
-                                    <option value="">Pilih Bidang</option>
-                                    <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                                        {{ bidang.nama_bidang }}
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
-                                <input
-                                    v-model="editForm.jabatan"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select
-                                v-model="editForm.status"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            >
-                                <option value="aktif">Aktif</option>
-                                <option value="nonaktif">Nonaktif</option>
-                            </select>
-                        </div>
+              </div>
+              
+              <div class="md:col-span-2">
+                <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                  <h5 class="text-lg font-bold text-gray-900 mb-4">Informasi Pribadi</h5>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p class="text-sm text-gray-500">Nama Lengkap</p>
+                      <p class="font-medium">{{ detailUser.name }}</p>
                     </div>
                     
-                    <div class="mt-6 flex gap-3">
-                        <button
-                            type="button"
-                            @click="closeEditModal"
-                            class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="submit"
-                            class="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                        >
-                            Simpan
-                        </button>
+                    <div>
+                      <p class="text-sm text-gray-500">Pangkat</p>
+                      <p class="font-medium">{{ detailUser.pangkat }}</p>
                     </div>
-                </form>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">NRP</p>
+                      <p class="font-medium">{{ detailUser.nrp }}</p>
+                    </div>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">NIP</p>
+                      <p class="font-medium">{{ detailUser.nip || '-' }}</p>
+                    </div>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">Email</p>
+                      <p class="font-medium">{{ detailUser.email }}</p>
+                    </div>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">No. HP</p>
+                      <p class="font-medium">{{ detailUser.no_hp || '-' }}</p>
+                    </div>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">Bidang</p>
+                      <p class="font-medium">{{ detailUser.bidang?.nama_bidang || '-' }}</p>
+                    </div>
+                    
+                    <div>
+                      <p class="text-sm text-gray-500">Jabatan</p>
+                      <p class="font-medium">{{ detailUser.jabatan }}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="mt-6 flex space-x-3">
+                  <button
+                    @click="editUser(detailUser)"
+                    class="flex-1 px-4 py-2 bg-[#C62828] text-white rounded-lg hover:bg-[#b71c1c] transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <EditIcon class="h-4 w-4 mr-2" />
+                    Edit
+                  </button>
+                  <button
+                    @click="resetPassword(detailUser)"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <LockIcon class="h-4 w-4 mr-2" />
+                    Reset Password
+                  </button>
+                  <button
+                    @click="closeDetailModal"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
+
+      <!-- Delete Confirmation Modal -->
+      <ConfirmModal
+        :open="showDeleteModal"
+        title="Hapus Pegawai"
+        message="Apakah Anda yakin ingin menghapus pegawai ini? Tindakan ini tidak dapat dibatalkan."
+        type="danger"
+        confirm-text="Hapus"
+        cancel-text="Batal"
+        @close="showDeleteModal = false"
+        @confirm="confirmDelete"
+      />
     </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { router, Link, useForm } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
+import Modal from '@/Components/Modal.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
+import SuperAdminHeader from '@/Components/SuperAdminHeader.vue';
+import Pagination from '@/Components/Pagination.vue';
+import InputError from '@/Components/InputError.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import TextInput from '@/Components/TextInput.vue';
 import {
-    BellIcon,
-    ChevronDownIcon,
-    UserIcon,
-    LogOutIcon,
-    MenuIcon,
-    UsersIcon,
-    SearchIcon,
-    EditIcon,
-    BanIcon,
-    RefreshCwIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    XIcon,
-    CheckIcon
+  SearchIcon,
+  PlusCircleIcon,
+  EditIcon,
+  EyeIcon,
+  TrashIcon,
+  UsersIcon,
+  UserIcon,
+  XIcon,
+  LockIcon
 } from 'lucide-vue-next';
+import debounce from 'lodash/debounce';
 
-// Props
+// Get page props
+const page = usePage();
 const props = defineProps({
-    users: Object,
-    bidangs: Array,
-    filters: Object,
+  users: Object,
+  bidangs: Array,
 });
 
 // State
-const profileMenuOpen = ref(false);
 const sidebarOpen = ref(true);
 const sidebarCollapsed = ref(false);
+const showCreateModal = ref(false);
 const showEditModal = ref(false);
-const selectedUser = ref(null);
+const showDeleteModal = ref(false);
+const showDetailModal = ref(false);
 
-// Filters
-const filters = reactive({
-    search: props.filters.search || '',
-    bidang_id: props.filters.bidang_id || '',
-    status: props.filters.status || '',
+const editingUser = ref(null);
+const detailUser = ref({});
+const userToDelete = ref(null);
+
+// Search and pagination state
+const searchQuery = ref('');
+const currentPage = ref(1);
+const usersPerPage = ref(10);
+
+const userForm = useForm({
+  name: '',
+  email: '',
+  pangkat: '',
+  nrp: '',
+  nip: '',
+  no_hp: '',
+  bidang_id: '',
+  jabatan: '',
+  status: 'aktif',
 });
 
-// Edit form
-const editForm = useForm({
-    id: null,
-    name: '',
-    email: '',
-    phone: '',
-    pangkat: '',
-    nrp: '',
-    nip: '',
-    bidang_id: '',
-    jabatan: '',
-    status: 'aktif',
+// Computed properties
+const filteredUsers = computed(() => {
+  let result = [...props.users.data];
+  
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(user => 
+      user.name.toLowerCase().includes(query) || 
+      user.email.toLowerCase().includes(query) ||
+      (user.bidang?.nama_bidang && user.bidang.nama_bidang.toLowerCase().includes(query))
+    );
+  }
+  
+  return result;
 });
 
-let searchTimeout;
+const totalPages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / usersPerPage.value);
+});
+
+const startIndex = computed(() => {
+  return (currentPage.value - 1) * usersPerPage.value;
+});
+
+const paginatedUsers = computed(() => {
+  const start = startIndex.value;
+  const end = start + usersPerPage.value;
+  return filteredUsers.value.slice(start, end);
+});
+
+const visiblePages = computed(() => {
+  const pages = [];
+  const maxVisiblePages = 5;
+  
+  if (totalPages.value <= maxVisiblePages) {
+    for (let i = 1; i <= totalPages.value; i++) {
+      pages.push(i);
+    }
+  } else {
+    const start = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2));
+    const end = Math.min(totalPages.value, start + maxVisiblePages - 1);
+    
+    if (start > 1) {
+      pages.push(1);
+      if (start > 2) {
+        pages.push('...');
+      }
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    
+    if (end < totalPages.value) {
+      if (end < totalPages.value - 1) {
+        pages.push('...');
+      }
+      pages.push(totalPages.value);
+    }
+  }
+  
+  return pages;
+});
 
 // Methods
-const toggleProfileMenu = () => {
-    profileMenuOpen.value = !profileMenuOpen.value;
+const handleSearch = debounce(() => {
+  currentPage.value = 1;
+}, 300);
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
 };
 
-const toggleSidebar = () => {
-    sidebarOpen.value = !sidebarOpen.value;
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
 };
 
-const handleSidebarCollapse = (collapsed) => {
-    sidebarCollapsed.value = collapsed;
+const goToPage = (page) => {
+  if (page !== '...') {
+    currentPage.value = page;
+  }
 };
 
-// Logout function
-const logout = () => {
-    router.post(route('logout'));
+const createUser = (form) => {
+  form.post(route('superadmin.pegawai.store'), {
+    onSuccess: () => {
+      closeModal();
+      form.reset();
+    },
+  });
 };
 
-const applyFilters = () => {
-    router.get(route('superadmin.pegawai'), {
-        ...filters
-    }, {
-        preserveState: true,
-        replace: true
-    });
+const updateUser = (form) => {
+  form.patch(route('superadmin.pegawai.update', editingUser.value.id), {
+    onSuccess: () => {
+      closeModal();
+    },
+  });
 };
 
-const resetFilters = () => {
-    filters.search = '';
-    filters.bidang_id = '';
-    filters.status = '';
-    applyFilters();
-};
-
-const debounceSearch = () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        applyFilters();
-    }, 500);
-};
-
-const viewDetail = (user) => {
-    router.visit(route('superadmin.pegawai.show', user));
+const handleSubmit = (form) => {
+  if (showEditModal.value) {
+    updateUser(form);
+  } else {
+    createUser(form);
+  }
 };
 
 const editUser = (user) => {
-    selectedUser.value = user;
-    editForm.id = user.id;
-    editForm.name = user.name;
-    editForm.email = user.email;
-    editForm.phone = user.phone || '';
-    editForm.pangkat = user.pangkat || '';
-    editForm.nrp = user.nrp || '';
-    editForm.nip = user.nip || '';
-    editForm.bidang_id = user.bidang_id;
-    editForm.jabatan = user.jabatan || '';
-    editForm.status = user.status;
-    showEditModal.value = true;
+  editingUser.value = user;
+  userForm.name = user.name;
+  userForm.email = user.email;
+  userForm.pangkat = user.pangkat;
+  userForm.nrp = user.nrp;
+  userForm.nip = user.nip;
+  userForm.no_hp = user.no_hp;
+  userForm.bidang_id = user.bidang_id;
+  userForm.jabatan = user.jabatan;
+  userForm.status = user.status;
+  showEditModal.value = true;
 };
 
-const closeEditModal = () => {
-    showEditModal.value = false;
-    selectedUser.value = null;
+const viewDetail = (user) => {
+  detailUser.value = { ...user };
+  showDetailModal.value = true;
 };
 
-const updateUser = () => {
-    editForm.patch(route('superadmin.pegawai.update', editForm.id), {
-        onSuccess: () => {
-            closeEditModal();
-            // Reload the page to show updated data
-            router.reload({ only: ['users'] });
-        },
-        onError: (errors) => {
-            console.log('Validation errors:', errors);
-        }
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  detailUser.value = {};
+};
+
+const openDeleteModal = (user) => {
+  userToDelete.value = user;
+  showDeleteModal.value = true;
+};
+
+const confirmDelete = () => {
+  if (userToDelete.value) {
+    router.delete(route('superadmin.pegawai.destroy', userToDelete.value.id), {
+      onSuccess: () => {
+        showDeleteModal.value = false;
+        userToDelete.value = null;
+      }
     });
+  }
 };
 
-const toggleUserStatus = (user) => {
-    if (confirm(`Apakah Anda yakin ingin ${user.status === 'aktif' ? 'menonaktifkan' : 'mengaktifkan'} pegawai ini?`)) {
-        router.patch(route('superadmin.pegawai.toggle-status', user), {}, {
-            onSuccess: () => {
-                // Reload the page to show updated data
-                router.reload({ only: ['users'] });
-            }
-        });
-    }
+const closeModal = () => {
+  showCreateModal.value = false;
+  showEditModal.value = false;
+  showDeleteModal.value = false;
+  editingUser.value = null;
+  userToDelete.value = null;
+  userForm.reset();
 };
 
-const resetUserPassword = (user) => {
-    if (confirm('Apakah Anda yakin ingin mereset password pegawai ini?')) {
-        router.post(route('superadmin.pegawai.reset-password', user), {}, {
-            onSuccess: () => {
-                // Password reset success message will be shown via flash message
-            }
-        });
-    }
+const resetPassword = (user) => {
+  if (confirm('Apakah Anda yakin ingin mereset password pengguna ini?')) {
+    router.post(route('superadmin.pegawai.reset-password', user.id), {}, {
+      onSuccess: () => {
+        alert('Password berhasil direset');
+      }
+    });
+  }
 };
 
 const handleImageError = (event) => {
-    event.target.src = '/images/default-profile.png';
+  event.target.src = '/images/profile.png';
 };
 
-// Close profile menu when clicking outside
-document.addEventListener('click', (event) => {
-    if (profileMenuOpen.value && !event.target.closest('.relative')) {
-        profileMenuOpen.value = false;
-    }
-});
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
+};
 
-// Computed property to determine if user has NIP or NRP
-const hasNip = computed(() => {
-    return selectedUser.value && selectedUser.value.nip && selectedUser.value.nip.trim() !== '';
-});
+const handleSidebarCollapse = (collapsed) => {
+  sidebarCollapsed.value = collapsed;
+};
 
-// Computed property for NIP/NRP value
-const nipOrNrp = computed({
-    get() {
-        if (!selectedUser.value) return '';
-        return hasNip.value ? selectedUser.value.nip : selectedUser.value.nrp;
-    },
-    set(value) {
-        if (!selectedUser.value) return;
-        if (hasNip.value) {
-            editForm.nip = value;
-            editForm.nrp = '';
-        } else {
-            editForm.nrp = value;
-            editForm.nip = '';
-        }
-    }
+// Reset pagination when users or search query change
+watch([() => props.users, searchQuery], () => {
+  currentPage.value = 1;
 });
-
 </script>
-
-<style scoped>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
-}
-</style>

@@ -10,50 +10,11 @@
         <!-- Main Content -->
         <div class="flex-1" :class="sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'">
             <!-- Header -->
-            <header class="bg-white shadow-md z-10">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16 items-center">
-                        <div class="flex items-center">
-                            <button 
-                                @click="toggleSidebar" 
-                                class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 mr-2"
-                            >
-                                <MenuIcon class="h-6 w-6" />
-                            </button>
-                            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Laporan Global</h2>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
-                                <button class="p-2 rounded-full hover:bg-gray-100">
-                                    <BellIcon class="h-5 w-5 text-gray-600" />
-                                </button>
-                            </div>
-                            <div class="relative">
-                                <button @click="toggleProfileMenu" class="flex items-center space-x-2 focus:outline-none">
-                                    <div class="h-8 w-8 rounded-full bg-[#C62828] flex items-center justify-center text-white font-semibold">
-                                        SA
-                                    </div>
-                                    <span class="text-gray-700 hidden md:block">Super Admin</span>
-                                    <ChevronDownIcon class="h-4 w-4 text-gray-500 hidden md:block" />
-                                </button>
-                                <!-- Profile Dropdown -->
-                                <div v-if="profileMenuOpen" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                                    <div class="py-1">
-                                        <Link :href="route('profile.edit')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <UserIcon class="h-4 w-4 inline mr-2" />
-                                            Profil
-                                        </Link>
-                                        <button @click="logout" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <LogOutIcon class="h-4 w-4 inline mr-2" />
-                                            Keluar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <SuperAdminHeader 
+                title="Laporan Global"
+                :user-profile-pic="$page.props.auth.user.profile_pict_url"
+                @toggle-sidebar="toggleSidebar"
+            />
 
             <main class="py-8">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,72 +26,131 @@
                         {{ $page.props.flash.error }}
                     </div>
 
-                    <div class="mb-6">
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-                            <FileTextIcon class="text-red-600" />
-                            Laporan Global Absensi
-                        </h1>
-                        <p class="text-gray-600">Rekapitulasi absensi seluruh pegawai POLDA TIK.</p>
-                    </div>
+                    <!-- Page Title + Search + Filter + Export -->
+                    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <!-- Left: Title + Description -->
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                <FileTextIcon class="text-red-600" />
+                                Laporan Global Absensi
+                            </h1>
+                            <p class="text-gray-600 mt-2">Rekapitulasi absensi seluruh pegawai POLDA TIK.</p>
+                        </div>
 
-                    <!-- Filters -->
-                    <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
-                                <select
-                                    v-model="filters.bidang_id"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    @change="applyFilters"
-                                >
-                                    <option value="">Semua Bidang</option>
-                                    <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                                        {{ bidang.nama_bidang }}
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+                        <!-- Right: Search + Filter + Export -->
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <!-- Search Bar -->
+                            <div class="relative">
+                                <SearchIcon
+                                    class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                                />
                                 <input
-                                    type="date"
-                                    v-model="filters.start_date"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    @change="applyFilters"
+                                    v-model="searchQuery"
+                                    type="text"
+                                    placeholder="Cari laporan..."
+                                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full md:w-64"
+                                    @input="handleSearch"
                                 />
                             </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
-                                <input
-                                    type="date"
-                                    v-model="filters.end_date"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    @change="applyFilters"
-                                />
+
+                            <!-- Filter Button -->
+                            <div class="relative">
+                                <button
+                                    ref="filterButton"
+                                    @click="showFilter = !showFilter"
+                                    class="px-3 py-2 border rounded-lg flex items-center space-x-2a"
+                                    :class="isFilterActive ? 'border-red-500 bg-red-50' : 'border-gray-300'"
+                                >
+                                    <FilterIcon class="h-5 w-5" :class="isFilterActive ? 'text-red-600' : 'text-gray-500'" />
+                                    <span>Filter</span>
+                                </button>
+
+                                <!-- Filter Popover -->
+                                <div 
+                                    v-if="showFilter" 
+                                    ref="filterPopover"
+                                    class="absolute right-0 mt-2 bg-white shadow-lg rounded-xl border p-4 z-50 w-80 max-w-sm"
+                                >
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
+                                            <select
+                                                v-model="filters.bidang_id"
+                                                class="w-full border border-gray-300 rounded-lg p-2"
+                                            >
+                                                <option value="">Semua Bidang</option>
+                                                <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
+                                                    {{ bidang.nama_bidang }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+                                            <input
+                                                type="date"
+                                                v-model="filters.start_date"
+                                                class="w-full border border-gray-300 rounded-lg p-2"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
+                                            <input
+                                                type="date"
+                                                v-model="filters.end_date"
+                                                class="w-full border border-gray-300 rounded-lg p-2"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 flex justify-end gap-3">
+                                        <button
+                                            @click="resetFilters"
+                                            class="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                        >
+                                            Reset
+                                        </button>
+                                        <button
+                                            @click="applyFilters"
+                                            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-200"
+                                        >
+                                            Terapkan
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="md:col-span-3 flex justify-end gap-2 mt-2">
+
+                            <!-- Export Dropdown -->
+                            <div class="relative">
                                 <button
-                                    @click="resetFilters"
-                                    class="border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition-all duration-200 ease-in-out"
+                                    @click="showExportDropdown = !showExportDropdown"
+                                    class="px-4 py-2 bg-[#C62828] text-white rounded-lg hover:bg-[#b71c1c] transition-all duration-300 flex items-center justify-center"
+                                    title="Export"
                                 >
-                                    Reset
+                                    <FileDownIcon class="h-5 w-5" />
                                 </button>
-                                <button
-                                    @click="exportToExcel"
-                                    class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200 ease-in-out flex items-center"
+
+                                <!-- Export Dropdown Menu -->
+                                <div 
+                                    v-if="showExportDropdown" 
+                                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
                                 >
-                                    <FileSpreadsheetIcon class="h-5 w-5 mr-2" />
-                                    Excel
-                                </button>
-                                <button
-                                    @click="exportToPDF"
-                                    class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-200 ease-in-out flex items-center"
-                                >
-                                    <FileDownIcon class="h-5 w-5 mr-2" />
-                                    PDF
-                                </button>
+                                    <button
+                                        @click="exportToExcel"
+                                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                    >
+                                        <FileSpreadsheetIcon class="h-4 w-4 mr-2" />
+                                        Export ke Excel
+                                    </button>
+                                    <button
+                                        @click="exportToPDF"
+                                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                    >
+                                        <FileTextIcon class="h-4 w-4 mr-2" />
+                                        Export ke PDF
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -144,8 +164,8 @@
                                         <th class="px-6 py-3">Nama</th>
                                         <th class="px-6 py-3">Bidang</th>
                                         <th class="px-6 py-3">Tanggal</th>
-                                        <th class="px-6 py-3">Masuk</th>
-                                        <th class="px-6 py-3">Keluar</th>
+                                        <th class="px-6 py-3">Jam Masuk</th>
+                                        <th class="px-6 py-3">Jam Keluar</th>
                                         <th class="px-6 py-3">Status</th>
                                         <th class="px-6 py-3">Keterangan</th>
                                     </tr>
@@ -237,21 +257,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
+import SuperAdminHeader from '@/Components/SuperAdminHeader.vue';
 import {
-    BellIcon,
-    ChevronDownIcon,
-    UserIcon,
-    LogOutIcon,
     FileSpreadsheetIcon,
     FileDownIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
-    MenuIcon,
-    FileTextIcon
+    FileTextIcon,
+    SearchIcon,
+    FilterIcon
 } from 'lucide-vue-next';
+import debounce from 'lodash/debounce';
 
 // Props
 const props = defineProps({
@@ -260,20 +279,26 @@ const props = defineProps({
 });
 
 // State
-const profileMenuOpen = ref(false);
 const sidebarOpen = ref(true);
 const sidebarCollapsed = ref(false);
+const showFilter = ref(false);
+const showExportDropdown = ref(false);
+const searchQuery = ref('');
+const filterButton = ref(null);
+const filterPopover = ref(null);
+
 const filters = ref({
     bidang_id: '',
     start_date: '',
     end_date: '',
 });
 
-// Methods
-const toggleProfileMenu = () => {
-    profileMenuOpen.value = !profileMenuOpen.value;
-};
+// Computed properties
+const isFilterActive = computed(() => {
+    return filters.value.bidang_id || filters.value.start_date || filters.value.end_date;
+});
 
+// Methods
 const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
 };
@@ -282,10 +307,11 @@ const handleSidebarCollapse = (collapsed) => {
     sidebarCollapsed.value = collapsed;
 };
 
-// Logout function
-const logout = () => {
-    router.post(route('logout'));
-};
+const handleSearch = debounce(() => {
+    // We can implement search functionality here if needed
+    // For now, we'll just close any open dropdowns
+    showExportDropdown.value = false;
+}, 300);
 
 const applyFilters = () => {
     router.get(route('superadmin.laporan'), {
@@ -294,6 +320,7 @@ const applyFilters = () => {
         preserveState: true,
         replace: true
     });
+    showFilter.value = false;
 };
 
 const resetFilters = () => {
@@ -302,19 +329,20 @@ const resetFilters = () => {
         start_date: '',
         end_date: '',
     };
-    applyFilters();
 };
 
 const exportToExcel = () => {
     router.post(route('superadmin.laporan.export.excel'), {
         ...filters.value
     });
+    showExportDropdown.value = false;
 };
 
 const exportToPDF = () => {
     router.post(route('superadmin.laporan.export.pdf'), {
         ...filters.value
     });
+    showExportDropdown.value = false;
 };
 
 // Format date to Indonesian format
@@ -388,10 +416,31 @@ const getStatusText = (attendance) => {
     }
 };
 
-// Close profile menu when clicking outside
-document.addEventListener('click', (event) => {
-    if (profileMenuOpen.value && !event.target.closest('.relative')) {
-        profileMenuOpen.value = false;
+// Close dropdowns when clicking outside
+const handleClickOutside = (event) => {
+    // Close export dropdown
+    if (showExportDropdown.value && 
+        !event.target.closest('[title="Export"]') && 
+        !event.target.closest('.absolute.right-0.mt-2.w-48')) {
+        showExportDropdown.value = false;
     }
+    
+    // Close filter popover
+    if (showFilter.value && 
+        filterButton.value && 
+        filterPopover.value && 
+        !filterButton.value.contains(event.target) && 
+        !filterPopover.value.contains(event.target)) {
+        showFilter.value = false;
+    }
+};
+
+// Lifecycle hooks
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
 });
 </script>

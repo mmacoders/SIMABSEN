@@ -15,6 +15,8 @@ class Izin extends Model
         'jenis_izin',
         'keterangan',
         'disetujui_oleh',
+        'status',
+        'catatan',
     ];
 
     protected $casts = [

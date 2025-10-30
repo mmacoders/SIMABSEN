@@ -12,13 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('izins', function (Blueprint $table) {
-            // Check if tanggal_selesai column exists before adding it
-            if (!Schema::hasColumn('izins', 'tanggal_selesai')) {
-                $table->date('tanggal_selesai')->nullable()->after('tanggal_mulai');
+            // Add tanggal_mulai if not exists
+            if (!Schema::hasColumn('izins', 'tanggal_mulai')) {
+                $table->date('tanggal_mulai')->nullable()->after('keterangan');
             }
             
-            // If tanggal column exists (from original migration), we might want to remove it
-            // But for now, let's just work with what we have
+            // Add tanggal_selesai if not exists
+            if (!Schema::hasColumn('izins', 'tanggal_selesai')) {
+                $columnName = Schema::hasColumn('izins', 'tanggal_mulai') ? 'tanggal_mulai' : 'keterangan';
+                $table->date('tanggal_selesai')->nullable()->after($columnName);
+            }
         });
     }
 

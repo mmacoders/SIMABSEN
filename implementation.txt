@@ -1,212 +1,54 @@
- Buatkan tampilan **Dashboard Admin** untuk sistem absensi berbasis **Laravel (backend)** dan **Vue.js (frontend)** dengan framework **TailwindCSS**, desain **modern UI/UX**, dan **tema warna khas POLDA (merah, hitam, putih)**.
+ Refactor dua komponen `sidebar.vue` dan `header.vue` agar layout dashboard konsisten: sidebar tetap fixed di sisi kiri layar, sementara header dan konten utama sejajar di kanan sidebar.
 
- Desain harus **responsive**, **clean**, dan **bernuansa profesional instansi pemerintahan**, bukan startup.
+ **Tujuan:**
 
- Komponen utama yang harus dibuat:
+ * Sidebar tidak berubah posisinya (tetap `fixed`, tinggi layar penuh).
+ * Header muncul di sebelah kanan sidebar, bukan di atasnya.
+ * Saat sidebar dikompres (collapsed), header menyesuaikan lebar sidebar dengan transisi halus.
+ * Breadcrumb dan toggle sidebar muncul di area header bagian kiri, tidak tertutupi sidebar.
 
- ---
+ **Instruksi Refactor:**
 
- ### 🧱 **1️⃣ Layout Umum**
+ 1. Pada `sidebar.vue`:
 
- * Menggunakan **layout 3 komponen utama**:
+    * Tetap gunakan `position: fixed` dan `h-screen`.
+    * Tambahkan z-index `z-20` untuk memastikan sidebar berada di bawah header dropdown, tetapi tidak menutupi header utama.
+    * Pastikan class `w-64` (expanded) dan `w-20` (collapsed) tetap digunakan, dikontrol dengan `isCollapsed`.
+    * Tambahkan event emit `@toggle-collapse` agar state collapse dapat disinkronkan dengan layout utama.
+ 2. Pada `header.vue`:
 
-   1. **Sidebar navigasi (warna hitam)**
-   2. **Header (putih dengan border halus)**
-   3. **Konten utama (dashboard cards & tabel ringkas)**
+    * Tambahkan prop `isCollapsed` untuk menerima status dari sidebar.
+    * Tambahkan binding dinamis pada header:
 
- * Warna dasar:
+      ```html
+      <header 
+        class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30 transition-all duration-300"
+        :class="[isCollapsed ? 'md:ml-20' : 'md:ml-64']"
+      
+      ```
+    * Pastikan breadcrumb dan tombol toggle sidebar tetap berada di sisi kiri header.
+    * Pastikan header memiliki lebar penuh area konten (bukan 100vw).
+ 3. Di layout utama (misalnya `AdminLayout.vue`):
 
-   * Sidebar → `#111827` (hitam pekat)
-   * Aksen utama → `#dc2626` (merah khas POLDA)
-   * Background konten → `#f9fafb` (abu terang)
-   * Font → warna `#111827` (teks gelap, kontras tinggi)
+    * Bungkus dengan flex horizontal:
 
- * Gunakan **font modern & clean** seperti `"Inter"` atau `"Poppins"`.
+      ```html
+      <div class="flex min-h-screen"
+        <Sidebar :sidebar-open="sidebarOpen" @toggle-collapse="isCollapsed = !isCollapsed" /
+        <div class="flex-1 flex flex-col w-full transition-all duration-300"
+          <Header :is-collapsed="isCollapsed" @toggle-sidebar="sidebarOpen = !sidebarOpen" /
+          <main class="flex-1 bg-gray-50 p-6 transition-all duration-300"
+            :class="[isCollapsed ? 'md:ml-20' : 'md:ml-64']"
+            <slot /
+          </main
+        </div
+      </div
+      ```
+ 4. Gunakan transisi `transition-all duration-300` pada margin atau lebar agar pergeseran terasa halus saat sidebar dibuka/tutup.
 
- * Desain **fluid & responsif**, dengan sidebar dapat ditutup (collapse) pada layar kecil.
+ **Hasil yang diharapkan:**
 
- ---
-
- ### 📚 **2️⃣ Sidebar Navigasi (Admin)**
-
- * Posisi kiri layar, tinggi penuh (`h-screen fixed left-0 top-0`).
- * Warna: **hitam (#111827)** dengan teks **putih**.
- * Navigasi dengan icon dan label.
- * **Active menu** berwarna **merah (#dc2626)** dengan latar abu halus `bg-red-900/30` dan border kiri merah.
- * Menu navigasi:
-
-   ```
-   🏠 Dashboard
-   📊 Laporan Absensi
-   📝 Izin & Cuti
-   👥 Data Pegawai
-   ```
- * Tambahkan tombol collapse sidebar di atas (untuk mobile view).
- * Gunakan icon dari `lucide-vue` atau `heroicons` agar ringan dan konsisten.
-
- **Contoh struktur sidebar:**
-
- ```vue
- <aside class="bg-[#111827] text-white w-64 min-h-screen p-4 flex flex-col"
-   <div class="flex items-center justify-between mb-6"
-     <h2 class="font-bold text-lg text-white"Admin Panel</h2
-     <button class="text-gray-400 hover:text-white md:hidden" @click="toggleSidebar"
-       <XIcon class="w-5 h-5" /
-     </button
-   </div
-   <nav class="space-y-1"
-     <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-red-700 transition" :class="isActive('dashboard') ? 'bg-red-700' : ''"
-       <HomeIcon class="w-5 h-5 mr-3" / Dashboard
-     </a
-     <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-red-700 transition" :class="isActive('laporan') ? 'bg-red-700' : ''"
-       <BarChart3Icon class="w-5 h-5 mr-3" / Laporan Absensi
-     </a
-     <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-red-700 transition" :class="isActive('izin') ? 'bg-red-700' : ''"
-       <ClipboardListIcon class="w-5 h-5 mr-3" / Izin & Cuti
-     </a
-     <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-red-700 transition" :class="isActive('pegawai') ? 'bg-red-700' : ''"
-       <UsersIcon class="w-5 h-5 mr-3" / Data Pegawai
-     </a
-   </nav
- </aside
- ```
-
- ---
-
- ### 🧭 **3️⃣ Header (Top Navigation)**
-
- * Warna putih `bg-white shadow-sm border-b border-gray-200`
- * Isi header:
-
-   * **Breadcrumbs / Judul Halaman**
-   * **Tombol toggle sidebar (mobile)** di sisi kiri
-   * **Profil admin + dropdown logout** di sisi kanan
- * Dropdown profil berisi:
-
-   * Nama admin
-   * Email
-   * Tombol `Keluar`
-
- **Contoh:**
-
- ```vue
- <header class="flex justify-between items-center bg-white border-b border-gray-200 px-6 py-3"
-   <div class="flex items-center gap-3"
-     <button class="text-gray-600 hover:text-red-600 md:hidden" @click="toggleSidebar"
-       <MenuIcon class="w-6 h-6" /
-     </button
-     <h1 class="text-lg font-semibold text-gray-800"Dashboard</h1
-   </div
-   <div class="flex items-center gap-4"
-     <p class="text-sm text-gray-700 font-medium"Admin</p
-     <div class="relative"
-       <button class="flex items-center gap-2"
-         <img src="/images/avatar.png" class="w-8 h-8 rounded-full border border-gray-300" /
-         <ChevronDownIcon class="w-4 h-4 text-gray-500" /
-       </button
-       <!-- Dropdown --
-       <div v-if="dropdownOpen" class="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg py-2 w-40"
-         <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-100"Profil</a
-         <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-100"Keluar</a
-       </div
-     </div
-   </div
- </header
- ```
-
- ---
-
- ### 🧩 **4️⃣ Dashboard Content (Main Section)**
-
- Tampilkan ringkasan statistik absensi pegawai:
-
- * **4 Card Statistik** (grid responsive)
-
-   * Pegawai Hadir Hari Ini
-   * Terlambat
-   * Izin / Cuti
-   * Tidak Hadir
- * Gunakan warna lembut dengan aksen merah di ikon:
-
-   ```css
-   bg-white rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition
-   ```
-
- **Contoh grid:**
-
- ```vue
- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6"
-   <div class="bg-white border rounded-2xl p-5 flex items-center justify-between"
-     <div
-       <p class="text-gray-500 text-sm"Hadir Hari Ini</p
-       <h2 class="text-2xl font-bold text-gray-900 mt-1"24</h2
-     </div
-     <CheckCircleIcon class="w-10 h-10 text-red-600" /
-   </div
-   <div class="bg-white border rounded-2xl p-5 flex items-center justify-between"
-     <div
-       <p class="text-gray-500 text-sm"Terlambat</p
-       <h2 class="text-2xl font-bold text-gray-900 mt-1"3</h2
-     </div
-     <ClockIcon class="w-10 h-10 text-red-600" /
-   </div
-   <div class="bg-white border rounded-2xl p-5 flex items-center justify-between"
-     <div
-       <p class="text-gray-500 text-sm"Izin / Cuti</p
-       <h2 class="text-2xl font-bold text-gray-900 mt-1"2</h2
-     </div
-     <ClipboardIcon class="w-10 h-10 text-red-600" /
-   </div
-   <div class="bg-white border rounded-2xl p-5 flex items-center justify-between"
-     <div
-       <p class="text-gray-500 text-sm"Tidak Hadir</p
-       <h2 class="text-2xl font-bold text-gray-900 mt-1"1</h2
-     </div
-     <XCircleIcon class="w-10 h-10 text-red-600" /
-   </div
- </div
- ```
-
- * Tambahkan grafik sederhana (`<BarChart /`) untuk visual kehadiran mingguan.
-
- * Di bawahnya tampilkan tabel **“Daftar Absensi Hari Ini”**:
-
-   | Nama | Jam Masuk | Jam Keluar | Status | Keterangan |
-   | ---- | --------- | ---------- | ------ | ---------- |
-
- * Status ditampilkan dengan warna badge:
-
-   * Hadir → `bg-green-100 text-green-800`
-   * Terlambat → `bg-yellow-100 text-yellow-800`
-   * Izin → `bg-blue-100 text-blue-800`
-   * Tidak hadir → `bg-red-100 text-red-800`
-
- ---
-
- ### ⚙️ **5️⃣ Responsiveness**
-
- * Sidebar berubah jadi **drawer** di layar kecil.
- * Grid card jadi 1 kolom di mobile.
- * Header tetap fixed agar mudah navigasi.
- * Gunakan `transition-all duration-300` untuk animasi halus.
-
- ---
-
- ### ✨ **6️⃣ Aesthetic Touch**
-
- * Tambahkan animasi lembut pada card saat hover.
- * Gunakan `shadow-md hover:shadow-xl` untuk depth efek profesional.
- * Gunakan transisi `ease-in-out` di sidebar open/close.
-
- ---
-
- ### 📋 **7️⃣ Output Diharapkan**
-
- Tampilan lengkap layout Admin Dashboard:
-
- * Sidebar kiri (hitam, ikon putih, active merah)
- * Header atas (putih, profil kanan, tombol toggle kiri)
- * Konten utama (card statistik, grafik, tabel absensi)
- * Desain konsisten dengan sistem superadmin dan user.
-
- “Gunakan desain dashboard modern profesional khas sistem kepolisian — warna merah, putih, dan hitam konsisten; minimalis, clean, responsif, dengan ikon dan layout proporsional.”
+ * Sidebar tetap berada di sisi kiri layar sepanjang waktu.
+ * Header dan konten utama berada di sebelah kanan sidebar, sejajar secara horizontal.
+ * Saat sidebar dikompres, area header dan konten melebar otomatis tanpa “melompat.”
+ * Breadcrumb dan toggle sidebar selalu tampak di dalam header di posisi kiri atas area konten.

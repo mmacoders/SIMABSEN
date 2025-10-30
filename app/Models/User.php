@@ -26,7 +26,7 @@ class User extends Authenticatable
         'nrp',
         'nip',
         'email',
-        'phone',
+        'no_hp',
         'password',
         'role',
         'bidang_id',
@@ -93,4 +93,5 @@ class User extends Authenticatable
         
         return null;
     }
+
 }
