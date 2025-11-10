@@ -14,6 +14,25 @@ Route::get('/', function () {
     ]);
 });
 
+// Test route for database write
+Route::get('/test-db-write', function () {
+    try {
+        $attendance = \App\Models\Absensi::create([
+            'user_id' => 1,
+            'tanggal' => date('Y-m-d'),
+            'waktu_masuk' => date('H:i:s'),
+            'lat_masuk' => 0.52400050,
+            'lng_masuk' => 123.06047523,
+            'status_lokasi_masuk' => 'valid',
+            'status' => 'hadir',
+        ]);
+        
+        return response()->json(['success' => true, 'attendance' => $attendance]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()]);
+    }
+});
+
 // User routes
 Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/user/dashboard', [App\Http\Controllers\User\DashboardController::class, 'index'])->name('user.dashboard');
@@ -31,14 +50,18 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/pegawai', [App\Http\Controllers\Admin\PegawaiController::class, 'index'])->name('admin.pegawai');
     Route::get('/admin/pegawai/{user}', [App\Http\Controllers\Admin\PegawaiController::class, 'show'])->name('admin.pegawai.show');
-    Route::patch('/admin/pegawai/{user}', [App\Http\Controllers\Admin\PegawaiController::class, 'update'])->name('admin.pegawai.update');
     Route::patch('/admin/pegawai/{user}/toggle-status', [App\Http\Controllers\Admin\PegawaiController::class, 'toggleStatus'])->name('admin.pegawai.toggle-status');
     Route::post('/admin/pegawai/{user}/reset-password', [App\Http\Controllers\Admin\PegawaiController::class, 'resetPassword'])->name('admin.pegawai.reset-password');
     Route::get('/admin/laporan', [App\Http\Controllers\Admin\LaporanController::class, 'index'])->name('admin.laporan');
     Route::post('/admin/laporan/export', [App\Http\Controllers\Admin\LaporanController::class, 'export'])->name('admin.laporan.export');
     // Izin & Cuti routes
     Route::get('/admin/izin', [App\Http\Controllers\Admin\IzinController::class, 'index'])->name('admin.izin');
+    Route::get('/admin/izin/create', [App\Http\Controllers\Admin\IzinController::class, 'create'])->name('admin.izin.create');
+    Route::post('/admin/izin', [App\Http\Controllers\Admin\IzinController::class, 'store'])->name('admin.izin.store');
+    Route::get('/admin/izin/{izin}', [App\Http\Controllers\Admin\IzinController::class, 'show'])->name('admin.izin.show');
+    Route::get('/admin/izin/{izin}/edit', [App\Http\Controllers\Admin\IzinController::class, 'edit'])->name('admin.izin.edit');
     Route::patch('/admin/izin/{izin}', [App\Http\Controllers\Admin\IzinController::class, 'update'])->name('admin.izin.update');
+    Route::delete('/admin/izin/{izin}', [App\Http\Controllers\Admin\IzinController::class, 'destroy'])->name('admin.izin.destroy');
     // Route for marking absent users
     Route::post('/admin/absensi/mark-absent', [App\Http\Controllers\User\AbsensiController::class, 'markAbsentUsers'])->name('admin.absensi.mark-absent');
     // Profil routes
@@ -56,12 +79,6 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::delete('/superadmin/admin/{user}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('superadmin.admin.destroy');
     Route::patch('/superadmin/admin/{user}/toggle-status', [App\Http\Controllers\SuperAdmin\AdminController::class, 'toggleStatus'])->name('superadmin.admin.toggle-status');
     Route::patch('/superadmin/admin/{user}/transfer', [App\Http\Controllers\SuperAdmin\AdminController::class, 'transfer'])->name('superadmin.admin.transfer');
-    
-    // Bidang Management
-    Route::get('/superadmin/bidang', [App\Http\Controllers\SuperAdmin\BidangController::class, 'index'])->name('superadmin.bidang');
-    Route::post('/superadmin/bidang', [App\Http\Controllers\SuperAdmin\BidangController::class, 'store'])->name('superadmin.bidang.store');
-    Route::patch('/superadmin/bidang/{bidang}', [App\Http\Controllers\SuperAdmin\BidangController::class, 'update'])->name('superadmin.bidang.update');
-    Route::delete('/superadmin/bidang/{bidang}', [App\Http\Controllers\SuperAdmin\BidangController::class, 'destroy'])->name('superadmin.bidang.destroy');
     
     // Pegawai Management
     Route::get('/superadmin/pegawai', [App\Http\Controllers\SuperAdmin\PegawaiController::class, 'index'])->name('superadmin.pegawai');
@@ -92,10 +109,16 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::patch('/superadmin/profil/password', [App\Http\Controllers\SuperAdmin\ProfilController::class, 'updatePassword'])->name('superadmin.profil.password');
 });
 
-// API routes for system settings
+// API routes for system settings - accessible by users for testing
+Route::middleware(['auth'])->group(function () {
+    Route::post('/api/system-settings/toggle-test-mode', [App\Http\Controllers\API\SystemSettingController::class, 'toggleTestMode'])->name('api.system-settings.toggle-test');
+});
+
+// API routes for system settings - restricted to superadmin
 Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/api/system-settings', [App\Http\Controllers\API\SystemSettingController::class, 'index'])->name('api.system-settings.index');
     Route::put('/api/system-settings', [App\Http\Controllers\API\SystemSettingController::class, 'update'])->name('api.system-settings.update');
+    Route::post('/api/system-settings/toggle', [App\Http\Controllers\API\SystemSettingController::class, 'toggleLocationValidation'])->name('api.system-settings.toggle');
 });
 
 Route::get('/dashboard', function () {

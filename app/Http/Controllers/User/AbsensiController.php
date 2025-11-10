@@ -10,12 +10,15 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AbsensiController extends Controller
 {
     // Show attendance form
     public function index()
     {
+        /** @var User $user */
         $user = Auth::user();
         
         // Get today's attendance record if exists
@@ -29,17 +32,22 @@ class AbsensiController extends Controller
         // Get system settings for location info
         $systemSettings = SystemSetting::first();
         
+        // Check if user is in testing mode
+        $testingModeDisabled = session('testing_mode_disabled', false);
+        
         return inertia('User/Absensi', [
             'user' => $user,
             'todayAttendance' => $todayAttendance,
             'todayIzin' => $todayIzin,
             'systemSettings' => $systemSettings,
+            'testingModeDisabled' => $testingModeDisabled,
         ]);
     }
     
     // Get today's attendance record for API
     public function getTodayAttendance()
     {
+        /** @var User $user */
         $user = Auth::user();
         
         // Get today's attendance record if exists
@@ -60,164 +68,243 @@ class AbsensiController extends Controller
     // Process check-in
     public function checkIn(Request $request)
     {
-        $user = Auth::user();
-        
-        // Validate GPS coordinates
-        $request->validate([
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
-        ]);
-        
-        // Check if user is within office radius
-        if ($this->validateLocation($request->lat, $request->lng) !== 'valid') {
-            return redirect()->back()->with('error', 'Lokasi Anda berada di luar radius kantor. Absensi tidak dapat diproses.');
-        }
-        
-        // Check if user can check in
-        if (!$this->canCheckIn($user)) {
-            return redirect()->back()->with('error', 'Anda tidak diizinkan melakukan check-in hari ini.');
-        }
-        
-        // Validate time - check if within working hours
-        $systemSettings = SystemSetting::first();
-        if (!$this->isWithinWorkingHours('checkin', $systemSettings)) {
-            // Mark as absent (alpha) if outside working hours
-            Absensi::updateOrCreate(
-                ['user_id' => $user->id, 'tanggal' => date('Y-m-d')],
-                [
-                    'status' => 'alpha',
-                    'keterangan' => 'Melakukan absensi di luar jam kerja',
-                ]
-            );
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+            Log::info('Check-in attempt', ['user_id' => $user->id, 'request_data' => $request->all()]);
             
-            return redirect()->back()->with('error', 'Absensi di luar jam kerja tidak diperbolehkan. Anda telah ditandai sebagai tidak hadir (alpha).');
+            // Check if location validation is disabled (either globally or for testing)
+            $systemSettings = SystemSetting::first();
+            $locationValidationDisabled = ($systemSettings && $systemSettings->disable_location_validation) || $request->session()->get('testing_mode_disabled', false);
+            
+            // Validate GPS coordinates only if location validation is enabled
+            if (!$locationValidationDisabled) {
+                $request->validate([
+                    'lat' => 'required|numeric',
+                    'lng' => 'required|numeric',
+                ]);
+            } else {
+                // When location validation is disabled, lat and lng are optional
+                $request->validate([
+                    'lat' => 'nullable|numeric',
+                    'lng' => 'nullable|numeric',
+                ]);
+            }
+            
+            // Set default values for lat/lng if not provided and location validation is disabled
+            $lat = $request->lat ?? 0;
+            $lng = $request->lng ?? 0;
+            
+            // Check if user is within office radius (unless location validation is disabled)
+            if (!$locationValidationDisabled) {
+                if ($this->validateLocation($lat, $lng) !== 'valid') {
+                    Log::warning('Location validation failed', ['user_id' => $user->id, 'lat' => $lat, 'lng' => $lng]);
+                    return redirect()->back()->with('error', 'Lokasi Anda berada di luar radius kantor. Absensi tidak dapat diproses.');
+                }
+            }
+            
+            // Check if user can check in
+            if (!$this->canCheckIn($user)) {
+                Log::warning('User cannot check in', ['user_id' => $user->id]);
+                return redirect()->back()->with('error', 'Anda tidak diizinkan melakukan check-in hari ini.');
+            }
+            
+            // Get system settings for working hours
+            $jamMasuk = $systemSettings ? $systemSettings->jam_masuk : '08:00:00';
+            $jamPulang = $systemSettings ? $systemSettings->jam_pulang : '17:00:00';
+            
+            // Check current time
+            $currentTime = date('H:i:s');
+            $isLate = $currentTime > $jamMasuk && $currentTime <= $jamPulang; // Only late if within working hours
+            $isEarly = $currentTime < $jamMasuk;
+            $isOnTime = $currentTime == $jamMasuk;
+            $isOutsideWorkingHours = $currentTime > $jamPulang;
+            
+            // Check if user has partial leave permission
+            $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
+                ->where('tanggal_selesai', '>=', date('Y-m-d'))
+                ->first();
+            $isPartialLeave = $todayIzin && $todayIzin->jenis_izin === 'parsial';
+            
+            // Prepare data for attendance record
+            $data = [
+                'waktu_masuk' => $currentTime,
+                'lat_masuk' => $lat,
+                'lng_masuk' => $lng,
+                'status_lokasi_masuk' => $locationValidationDisabled ? 'valid' : $this->validateLocation($lat, $lng),
+            ];
+            
+            // Set status based on arrival time
+            if ($isPartialLeave) {
+                // If user has partial leave, set appropriate status
+                $data['status'] = 'Izin Parsial (Check-in)';
+                $data['keterangan'] = $todayIzin->keterangan;
+            } elseif ($isOutsideWorkingHours) {
+                // If user is checking in after work hours, mark as absent
+                $data['status'] = 'alpha';
+                $data['keterangan'] = 'Check-in dilakukan di luar jam kerja';
+            } elseif ($isEarly || $isOnTime) {
+                // Early arrivals and on-time arrivals are considered "tepat waktu" (on time)
+                $data['status'] = 'hadir'; // Early or on-time arrivals are marked as present
+            } elseif ($isLate && $request->has('keterangan')) {
+                // Late arrivals with explanation
+                $data['keterangan'] = $request->keterangan;
+                $data['status'] = 'terlambat';
+            } elseif ($isLate) {
+                // Late arrivals without explanation
+                $data['status'] = 'terlambat';
+            } else {
+                // Fallback (should not happen with the above conditions)
+                $data['status'] = 'hadir';
+            }
+            
+            Log::info('Creating/updating attendance record', ['user_id' => $user->id, 'data' => $data]);
+            
+            // Use database transaction to ensure data consistency
+            $attendance = DB::transaction(function () use ($user, $data) {
+                // Check if user already has an attendance record for today
+                $attendance = Absensi::where('user_id', $user->id)
+                    ->where('tanggal', date('Y-m-d'))
+                    ->first();
+                    
+                if ($attendance) {
+                    // If attendance record exists, update it with check-in data
+                    Log::info('Updating existing attendance record', ['attendance_id' => $attendance->id]);
+                    $attendance->update($data);
+                } else {
+                    // If no attendance record exists, create one
+                    Log::info('Creating new attendance record');
+                    $attendance = Absensi::create(array_merge($data, [
+                        'user_id' => $user->id,
+                        'tanggal' => date('Y-m-d')
+                    ]));
+                }
+                
+                return $attendance;
+            });
+            
+            Log::info('Attendance record saved', ['attendance_id' => $attendance->id]);
+            
+            // If user is late but didn't provide explanation yet, return with prompt
+            // Only prompt for late arrivals, not early arrivals, outside working hours, or partial leave
+            if ($isLate && !$request->has('keterangan') && !$attendance->keterangan && !$isPartialLeave && !$isOutsideWorkingHours) {
+                return redirect()->back()->with('prompt_keterangan', 'Anda terlambat. Silakan berikan keterangan keterlambatan.');
+            }
+            
+            // If user has partial leave, show appropriate message
+            if ($isPartialLeave) {
+                return redirect()->back()->with('success', 'Check-in izin parsial berhasil. Anda tidak wajib melakukan check-out.');
+            }
+            
+            // If user checked in outside working hours, show appropriate message
+            if ($isOutsideWorkingHours) {
+                return redirect()->back()->with('success', 'Check-in berhasil dicatat. Anda telah ditandai sebagai tidak hadir (alpha) karena check-in dilakukan di luar jam kerja.');
+            }
+            
+            return redirect()->back()->with('success', 'Check-in berhasil dicatat.');
+        } catch (\Exception $e) {
+            Log::error('Check-in error', ['user_id' => Auth::id(), 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat melakukan check-in. Silakan coba lagi.');
         }
-        
-        // Check if user has partial leave permission
-        $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
-            ->where('tanggal_selesai', '>=', date('Y-m-d'))
-            ->first();
-        $isPartialLeave = $todayIzin && $todayIzin->jenis_izin === 'parsial';
-        
-        // Get system settings for working hours
-        $jamMasuk = $systemSettings ? $systemSettings->jam_masuk : '08:00:00';
-        
-        // Check current time
-        $currentTime = date('H:i:s');
-        $isLate = $currentTime > $jamMasuk;
-        
-        // Prepare data for attendance record
-        $data = [
-            'waktu_masuk' => $currentTime,
-            'lat_masuk' => $request->lat,
-            'lng_masuk' => $request->lng,
-            'status_lokasi_masuk' => $this->validateLocation($request->lat, $request->lng),
-        ];
-        
-        // If user is late, they need to provide an explanation
-        if ($isLate && $request->has('keterangan')) {
-            $data['keterangan'] = $request->keterangan;
-            $data['status'] = 'terlambat';
-        } elseif (!$isLate) {
-            $data['status'] = 'hadir';
-        }
-        
-        // If user has partial leave, set appropriate status
-        if ($isPartialLeave) {
-            $data['status'] = 'Izin Parsial (Check-in)';
-            $data['keterangan'] = $todayIzin->keterangan;
-        }
-        
-        // Check if user already has an attendance record for today
-        $attendance = Absensi::firstOrCreate(
-            ['user_id' => $user->id, 'tanggal' => date('Y-m-d')],
-            $data
-        );
-        
-        // If user is late but didn't provide explanation yet, return with prompt
-        if ($isLate && !$request->has('keterangan') && !$attendance->keterangan && !$isPartialLeave) {
-            return redirect()->back()->with('prompt_keterangan', 'Anda terlambat. Silakan berikan keterangan keterlambatan.');
-        }
-        
-        // If user has partial leave, show appropriate message
-        if ($isPartialLeave) {
-            return redirect()->back()->with('success', 'Check-in izin parsial berhasil. Anda tidak wajib melakukan check-out.');
-        }
-        
-        return redirect()->back()->with('success', 'Check-in berhasil dicatat.');
     }
     
     // Process check-out
     public function checkOut(Request $request)
     {
-        $user = Auth::user();
-        
-        // Validate GPS coordinates
-        $request->validate([
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
-        ]);
-        
-        // Check if user is within office radius
-        if ($this->validateLocation($request->lat, $request->lng) !== 'valid') {
-            return redirect()->back()->with('error', 'Lokasi Anda berada di luar radius kantor. Absensi tidak dapat diproses.');
-        }
-        
-        // Check if user can check out
-        if (!$this->canCheckOut($user)) {
-            return redirect()->back()->with('error', 'Anda tidak diizinkan melakukan check-out hari ini.');
-        }
-        
-        // Validate time - check if within working hours
-        $systemSettings = SystemSetting::first();
-        if (!$this->isWithinWorkingHours('checkout', $systemSettings)) {
-            // Mark as absent (alpha) if outside working hours
-            Absensi::updateOrCreate(
-                ['user_id' => $user->id, 'tanggal' => date('Y-m-d')],
-                [
-                    'status' => 'alpha',
-                    'keterangan' => 'Melakukan absensi di luar jam kerja',
-                ]
-            );
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+            Log::info('Check-out attempt', ['user_id' => $user->id, 'request_data' => $request->all()]);
             
-            return redirect()->back()->with('error', 'Absensi di luar jam kerja tidak diperbolehkan. Anda telah ditandai sebagai tidak hadir (alpha).');
+            // Check if location validation is disabled (either globally or for testing)
+            $systemSettings = SystemSetting::first();
+            $locationValidationDisabled = ($systemSettings && $systemSettings->disable_location_validation) || $request->session()->get('testing_mode_disabled', false);
+            
+            // Validate GPS coordinates only if location validation is enabled
+            if (!$locationValidationDisabled) {
+                $request->validate([
+                    'lat' => 'required|numeric',
+                    'lng' => 'required|numeric',
+                ]);
+            } else {
+                // When location validation is disabled, lat and lng are optional
+                $request->validate([
+                    'lat' => 'nullable|numeric',
+                    'lng' => 'nullable|numeric',
+                ]);
+            }
+            
+            // Set default values for lat/lng if not provided and location validation is disabled
+            $lat = $request->lat ?? 0;
+            $lng = $request->lng ?? 0;
+            
+            // Check if user is within office radius (unless location validation is disabled)
+            if (!$locationValidationDisabled) {
+                if ($this->validateLocation($lat, $lng) !== 'valid') {
+                    Log::warning('Location validation failed', ['user_id' => $user->id, 'lat' => $lat, 'lng' => $lng]);
+                    return redirect()->back()->with('error', 'Lokasi Anda berada di luar radius kantor. Absensi tidak dapat diproses.');
+                }
+            }
+            
+            // Check if user can check out
+            if (!$this->canCheckOut($user)) {
+                Log::warning('User cannot check out', ['user_id' => $user->id]);
+                return redirect()->back()->with('error', 'Anda tidak diizinkan melakukan check-out hari ini.');
+            }
+            
+            // Get today's attendance record
+            $attendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
+            
+            if (!$attendance) {
+                Log::warning('No attendance record found for check-out', ['user_id' => $user->id]);
+                return redirect()->back()->with('error', 'Anda belum melakukan check-in hari ini.');
+            }
+            
+            // Check if user has partial leave
+            $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
+                ->where('tanggal_selesai', '>=', date('Y-m-d'))
+                ->first();
+            $isPartialLeave = $todayIzin && $todayIzin->jenis_izin === 'parsial';
+            
+            // Prepare check-out data
+            $checkoutData = [
+                'waktu_keluar' => date('H:i:s'),
+                'lat_keluar' => $lat,
+                'lng_keluar' => $lng,
+                'status_lokasi_keluar' => $locationValidationDisabled ? 'valid' : $this->validateLocation($lat, $lng),
+            ];
+            
+            // If user has partial leave, update status
+            if ($isPartialLeave) {
+                $checkoutData['status'] = 'Izin Parsial (Selesai)';
+            }
+            
+            Log::info('Updating attendance record for check-out', ['attendance_id' => $attendance->id, 'data' => $checkoutData]);
+            
+            // Use database transaction to ensure data consistency
+            DB::transaction(function () use ($attendance, $checkoutData) {
+                // Update check-out information
+                $attendance->update($checkoutData);
+            });
+            
+            Log::info('Attendance record updated for check-out', ['attendance_id' => $attendance->id]);
+            
+            // If user has partial leave, show appropriate message
+            if ($isPartialLeave) {
+                return redirect()->back()->with('success', 'Check-out berhasil dicatat. Izin parsial telah selesai.');
+            }
+            
+            return redirect()->back()->with('success', 'Check-out berhasil dicatat.');
+        } catch (\Exception $e) {
+            Log::error('Check-out error', ['user_id' => Auth::id(), 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat melakukan check-out. Silakan coba lagi.');
         }
-        
-        // Get today's attendance record
-        $attendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
-        
-        if (!$attendance) {
-            return redirect()->back()->with('error', 'Anda belum melakukan check-in hari ini.');
-        }
-        
-        // Check if user has partial leave
-        $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
-            ->where('tanggal_selesai', '>=', date('Y-m-d'))
-            ->first();
-        $isPartialLeave = $todayIzin && $todayIzin->jenis_izin === 'parsial';
-        
-        // Update check-out information
-        $attendance->update([
-            'waktu_keluar' => date('H:i:s'),
-            'lat_keluar' => $request->lat,
-            'lng_keluar' => $request->lng,
-            'status_lokasi_keluar' => $this->validateLocation($request->lat, $request->lng),
-        ]);
-        
-        // If user has partial leave, update status
-        if ($isPartialLeave) {
-            $attendance->update([
-                'status' => 'Izin Parsial (Selesai)',
-            ]);
-            return redirect()->back()->with('success', 'Check-out berhasil dicatat. Izin parsial telah selesai.');
-        }
-        
-        return redirect()->back()->with('success', 'Check-out berhasil dicatat.');
     }
     
     // Process permission/leave request
     public function requestPermission(Request $request)
     {
+        /** @var User $user */
         $user = Auth::user();
         
         // Validate request
@@ -241,6 +328,7 @@ class AbsensiController extends Controller
         Izin::updateOrCreate(
             [
                 'user_id' => $user->id, 
+                'tanggal' => $request->tanggal_mulai, // Include tanggal in search criteria
                 'tanggal_mulai' => $request->tanggal_mulai,
                 'tanggal_selesai' => $request->tanggal_selesai
             ],
@@ -414,22 +502,27 @@ class AbsensiController extends Controller
         $currentTime = Carbon::now();
         $currentHour = $currentTime->format('H:i:s');
         
-        // For check-in, check if current time is between start of day and jam_pulang
+        // For check-in, allow check-in from 1 hour before jam_masuk until 2 hours after jam_masuk
         if ($type === 'checkin') {
+            $jamMasuk = $systemSettings->jam_masuk ?? '08:00:00';
+            
+            // Allow check-in from 1 hour before jam_masuk
+            $startCheckInTime = Carbon::createFromTimeString($jamMasuk)->subHour()->format('H:i:s');
+            
+            // Allow check-in until 2 hours after jam_masuk
+            $endCheckInTime = Carbon::createFromTimeString($jamMasuk)->addHours(2)->format('H:i:s');
+            
+            return $currentHour >= $startCheckInTime && $currentHour <= $endCheckInTime;
+        }
+        // For check-out, check if current time is between jam_masuk and 2 hours after jam_pulang
+        elseif ($type === 'checkout') {
             $jamMasuk = $systemSettings->jam_masuk ?? '08:00:00';
             $jamPulang = $systemSettings->jam_pulang ?? '17:00:00';
             
-            // Allow check-in from start of day until 1 hour after jam_pulang
-            $endCheckInTime = Carbon::createFromTimeString($jamPulang)->addHour()->format('H:i:s');
+            // Allow check-out from jam_masuk onwards until 2 hours after jam_pulang
+            $endCheckOutTime = Carbon::createFromTimeString($jamPulang)->addHours(2)->format('H:i:s');
             
-            return $currentHour >= $jamMasuk && $currentHour <= $endCheckInTime;
-        }
-        // For check-out, check if current time is between jam_masuk and end of day
-        elseif ($type === 'checkout') {
-            $jamMasuk = $systemSettings->jam_masuk ?? '08:00:00';
-            
-            // Allow check-out from jam_masuk onwards until end of day
-            return $currentHour >= $jamMasuk;
+            return $currentHour >= $jamMasuk && $currentHour <= $endCheckOutTime;
         }
         
         return true;

@@ -27,7 +27,7 @@
           </div>
 
           <!-- Temporary Testing Toggle - Only visible in development/testing -->
-          <div v-if="isDevelopmentMode" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
                 <AlertTriangleIcon class="h-5 w-5 text-yellow-600 mr-2" />
@@ -153,7 +153,7 @@
                 <button @click="cancelPermission" class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium">
                   Batal
                 </button>
-                <button @click="submitPermission" class="px-5 py-2.5 bg-[#dc2626] text-white rounded-xl hover:bg-[#b91c1c] transition-colors duration-200 font-medium">
+                <button @click="submitPermission" class="px-5 py-2.5 bg-[#dc2626] text-white rounded-xl hover:bg-[#b91c1c] transition-colors duration-300 font-medium">
                   Ajukan
                 </button>
               </div>
@@ -210,16 +210,6 @@
                 
                 <!-- Attendance Warnings Section -->
                 <div class="mb-4 space-y-3">
-                  <!-- Outside Working Hours Warning -->
-                  <div v-if="!isWithinWorkingHours" class="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <div class="flex items-start">
-                      <AlertTriangleIcon class="h-4 w-4 text-orange-600 mt-0.5 mr-2 flex-shrink-0" />
-                      <div class="text-sm text-orange-700">
-                        <span class="font-medium">Peringatan:</span> Di luar jam kerja. Absensi saat ini akan ditandai sebagai tidak hadir (alpha).
-                      </div>
-                    </div>
-                  </div>
-                  
                   <!-- Location Warning -->
                   <div v-if="currentLocation && !isWithinOfficeRadius && !locationValidationDisabled" class="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <div class="flex items-start">
@@ -232,6 +222,21 @@
                 </div>
                 
                 <div class="mt-auto">
+                  <!-- Late arrival reason input - shown when user is late -->
+                  <div v-if="isLateArrival && !hasCheckedIn" class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="late_reason">
+                      Keterangan Keterlambatan
+                    </label>
+                    <textarea 
+                      v-model="lateArrivalReason" 
+                      id="late_reason"
+                      class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] transition-colors duration-200 shadow-sm" 
+                      rows="3" 
+                      placeholder="Mohon berikan alasan keterlambatan Anda..."
+                    ></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Harap isi keterangan keterlambatan Anda sebelum melakukan check-in.</p>
+                  </div>
+                  
                   <button
                     :disabled="isAttendanceButtonDisabled"
                     @click="handleAttendanceAction"
@@ -307,8 +312,11 @@
                   <span>Radius absensi: {{ attendanceRadius }} meter</span>
                 </div>
               </div>
-              <div class="h-48 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+              <div class="h-48 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 relative">
                 <div ref="mapContainer" class="w-full h-full"></div>
+                <div v-if="!mapLoaded" class="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-70">
+                  <Loader2Icon class="w-6 h-6 animate-spin text-[#dc2626]" />
+                </div>
               </div>
             </div>
           </div>
@@ -324,6 +332,8 @@ import Sidebar from '@/Components/Sidebar.vue';
 import { router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
 import Swal from 'sweetalert2';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { 
   CheckCircleIcon, 
   InfoIcon, 
@@ -348,6 +358,10 @@ const props = defineProps({
     todayAttendance: Object,
     todayIzin: Object,
     systemSettings: Object,
+    testingModeDisabled: {
+      type: Boolean,
+      default: false
+    }
 });
 
 // Office location with fallback values
@@ -364,10 +378,11 @@ const sidebarCollapsed = ref(false);
 const gettingLocation = ref(false);
 const currentLocation = ref(null);
 const autoLocationDetected = ref(false);
+const mapLoaded = ref(false);
+const mapContainer = ref(null);
 
-// Testing mode state
-const isDevelopmentMode = ref(process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost');
-const locationValidationDisabled = ref(false);
+// Testing mode state - initialize from props
+const locationValidationDisabled = ref(props.testingModeDisabled || false);
 
 // Modal states
 const showLateArrivalModal = ref(false);
@@ -386,16 +401,32 @@ const handleSidebarCollapse = (collapsed) => {
 
 // Toggle location validation for testing
 const toggleLocationValidation = () => {
-  locationValidationDisabled.value = !locationValidationDisabled.value;
-  Swal.fire({
-    icon: locationValidationDisabled.value ? 'success' : 'info',
-    title: locationValidationDisabled.value ? 'Radius Dinonaktifkan' : 'Radius Diaktifkan',
-    text: locationValidationDisabled.value 
-      ? 'Validasi radius lokasi telah dinonaktifkan untuk testing.' 
-      : 'Validasi radius lokasi telah diaktifkan kembali.',
-    showConfirmButton: false,
-    timer: 1500,
-    timerProgressBar: true,
+  // Call the API to toggle the testing mode
+  router.post(route('api.system-settings.toggle-test'), {}, {
+    onSuccess: (response) => {
+      // Update the local state based on the response
+      if (response.testing_mode_disabled !== undefined) {
+        locationValidationDisabled.value = response.testing_mode_disabled;
+      }
+      
+      Swal.fire({
+        icon: 'success',
+        title: locationValidationDisabled.value ? 'Mode Testing Diaktifkan' : 'Mode Testing Dinonaktifkan',
+        text: locationValidationDisabled.value 
+          ? 'Validasi radius lokasi telah dinonaktifkan untuk testing.' 
+          : 'Validasi radius lokasi telah diaktifkan kembali.',
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: true,
+      });
+    },
+    onError: (errors) => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: 'Gagal mengubah mode testing.',
+      });
+    }
   });
 };
 
@@ -418,7 +449,7 @@ const hasCheckedOut = computed(() => {
 // Computed properties for unified attendance card
 const getAttendanceCardTitle = computed(() => {
   if (hasCheckedIn.value && hasCheckedOut.value) {
-    return 'Absensi Selesai';
+    return 'Absensi Selesai'; 
   } else if (hasCheckedIn.value && !hasCheckedOut.value) {
     return 'Sudah Check-in';
   } else {
@@ -434,6 +465,25 @@ const getAttendanceCardDescription = computed(() => {
   } else {
     return 'Silakan lakukan absensi hari ini.';
   }
+});
+
+// Check if user is late based on system settings and action type
+const isLateArrival = computed(() => {
+  if (!props.systemSettings) return false;
+  
+  const now = new Date();
+  const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
+  const jamMasuk = props.systemSettings?.jam_masuk || '08:00:00';
+  const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
+  
+  // Only consider late arrival for check-in actions, not check-out
+  if (hasCheckedIn.value && !hasCheckedOut.value) {
+    // For check-out, we don't consider it "late arrival"
+    return false;
+  }
+  
+  // User is considered late if current time is after jam_masuk but within working hours (before jam_pulang)
+  return currentTime > jamMasuk && currentTime < jamPulang;
 });
 
 const getAttendanceButtonText = computed(() => {
@@ -495,8 +545,8 @@ const handleAttendanceAction = () => {
   }
 };
 
-// Check if current time is within working hours
-const isWithinWorkingHours = computed(() => {
+// Check if current time is within valid check-in window
+const isValidCheckInTime = computed(() => {
   if (!props.systemSettings) return true;
   
   const now = new Date();
@@ -504,12 +554,14 @@ const isWithinWorkingHours = computed(() => {
   const jamMasuk = props.systemSettings?.jam_masuk || '08:00:00';
   const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
   
-  // Allow check-in from jam_masuk until 1 hour after jam_pulang
-  const endCheckInTime = new Date(`1970-01-01T${jamPulang}`);
-  endCheckInTime.setHours(endCheckInTime.getHours() + 1);
-  const endCheckInTimeString = endCheckInTime.toTimeString().substring(0, 8);
+  // Allow check-in from 1 hour before jam_masuk until jam_pulang
+  const startCheckInTime = new Date(`1970-01-01T${jamMasuk}`);
+  startCheckInTime.setHours(startCheckInTime.getHours() - 1);
+  const startCheckInTimeString = startCheckInTime.toTimeString().substring(0, 8);
   
-  return currentTime >= jamMasuk && currentTime <= endCheckInTimeString;
+  // Users should not be allowed to check in after jam_pulang
+  // They should be marked as absent if they try to check in after jam_pulang
+  return currentTime >= startCheckInTimeString && currentTime < jamPulang;
 });
 
 // Check if current location is within office radius
@@ -605,12 +657,54 @@ const getCurrentLocation = () => {
 
 // Automatically get location when page loads
 onMounted(() => {
+  // Initialize map
+  initMap();
+  
   // Always auto-detect location when page loads
   // Small delay to ensure page is fully loaded
   setTimeout(() => {
     getCurrentLocation();
   }, 1000);
 });
+
+// Initialize map
+const initMap = () => {
+  // Small delay to ensure DOM is ready
+  setTimeout(() => {
+    if (mapContainer.value) {
+      try {
+        // Create map instance
+        const map = L.map(mapContainer.value).setView([officeLocation.lat, officeLocation.lng], 15);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Add marker for office location
+        const marker = L.marker([officeLocation.lat, officeLocation.lng]).addTo(map);
+        
+        // Add circle for attendance radius
+        const circle = L.circle([officeLocation.lat, officeLocation.lng], {
+          color: '#dc2626',
+          fillColor: '#dc2626',
+          fillOpacity: 0.2,
+          radius: attendanceRadius
+        }).addTo(map);
+        
+        // Add popup to marker
+        marker.bindPopup("Kantor POLDA TIK").openPopup();
+        
+        // Set map as loaded
+        mapLoaded.value = true;
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        // Set map as loaded even if there's an error to hide the loading spinner
+        mapLoaded.value = true;
+      }
+    }
+  }, 100);
+};
 
 // Check-in function with automatic location
 const checkIn = () => {
@@ -634,19 +728,39 @@ const checkIn = () => {
     return;
   }
   
-  // Warn if outside working hours
-  if (!isWithinWorkingHours.value) {
+  // Check if user is trying to check in outside of valid working hours
+  if (!isValidCheckInTime.value) {
+    const jamMasuk = props.systemSettings?.jam_masuk || '08:00';
+    const jamPulang = props.systemSettings?.jam_pulang || '17:00';
+    
+    // Calculate the valid check-in window for better messaging
+    const startCheckInTime = new Date(`1970-01-01T${jamMasuk}`);
+    startCheckInTime.setHours(startCheckInTime.getHours() - 1);
+    const startCheckInTimeString = startCheckInTime.toTimeString().substring(0, 5);
+    
     Swal.fire({
       icon: 'warning',
       title: 'Peringatan!',
-      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk || '08:00'} - ${props.systemSettings?.jam_pulang || '17:00'}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
-      showCancelButton: true,
-      confirmButtonText: 'Lanjutkan',
-      cancelButtonText: 'Batal'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        performCheckIn();
-      }
+      text: `Jam check-in yang diperbolehkan: ${startCheckInTimeString} - ${jamPulang}. Check-in di luar jam tersebut tidak diperbolehkan.`,
+      showCancelButton: false,
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+  
+  // If user is late and hasn't provided a reason, show error
+  // Only apply this validation when actually checking in (not when already checked in)
+  // Skip this validation if user is outside working hours
+  const now = new Date();
+  const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
+  const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
+  const isOutsideWorkingHours = currentTime >= jamPulang;
+
+  if (isLateArrival.value && !lateArrivalReason.value.trim() && !hasCheckedIn.value && !isOutsideWorkingHours) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Peringatan!',
+      text: 'Anda terlambat. Mohon isi keterangan keterlambatan sebelum melakukan check-in.',
     });
     return;
   }
@@ -693,10 +807,27 @@ const performCheckIn = () => {
 
 // Send check-in request to server
 const sendCheckInRequest = (lat, lng) => {
-  router.post(route('user.absensi.checkin'), {
+  // Prepare data for check-in request
+  const requestData = {
     lat: lat,
     lng: lng,
-  }, {
+  };
+  
+  // Add late arrival reason if user is late
+  if (isLateArrival.value && lateArrivalReason.value.trim()) {
+    requestData.keterangan = lateArrivalReason.value;
+  }
+  
+  // Add flag to indicate if user is checking in outside of working hours
+  const now = new Date();
+  const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
+  const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
+
+  if (currentTime > jamPulang) {
+    requestData.outside_working_hours = true;
+  }
+  
+  router.post(route('user.absensi.checkin'), requestData, {
     onStart: () => {
       gettingLocation.value = true;
     },
@@ -708,6 +839,9 @@ const sendCheckInRequest = (lat, lng) => {
       if (response.props.flash && response.props.flash.prompt_keterangan) {
         showLateArrivalModal.value = true;
       } else {
+        // Clear the late arrival reason after successful check-in
+        lateArrivalReason.value = '';
+        
         Swal.fire({
           icon: 'success',
           title: 'Berhasil!',
@@ -763,22 +897,47 @@ const checkOut = () => {
     return;
   }
   
-  // Warn if outside working hours
-  if (!isWithinWorkingHours.value) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Peringatan!',
-      text: `Anda melakukan absensi di luar jam kerja (${props.systemSettings?.jam_masuk || '08:00'} - ${props.systemSettings?.jam_pulang || '17:00'}). Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
-      showCancelButton: true,
-      confirmButtonText: 'Lanjutkan',
-      cancelButtonText: 'Batal'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        performCheckOut();
-      }
-    });
-    return;
-  }
+  // Remove working hours validation for check-out
+  // const isValidCheckOutTime = computed(() => {
+  //   if (!props.systemSettings) return true;
+  //   
+  //   const now = new Date();
+  //   const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
+  //   const jamMasuk = props.systemSettings?.jam_masuk || '08:00:00';
+  //   const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
+  //   
+  //   // Allow check-out from jam_masuk onwards until 2 hours after jam_pulang
+  //   const endCheckOutTime = new Date(`1970-01-01T${jamPulang}`);
+  //   endCheckOutTime.setHours(endCheckOutTime.getHours() + 2);
+  //   const endCheckOutTimeString = endCheckOutTime.toTimeString().substring(0, 8);
+  //   
+  //   return currentTime >= jamMasuk && currentTime <= endCheckOutTimeString;
+  // });
+  
+  // Warn if outside working hours for check-out
+  // if (!isValidCheckOutTime.value) {
+  //   const jamMasuk = props.systemSettings?.jam_masuk || '08:00';
+  //   const jamPulang = props.systemSettings?.jam_pulang || '17:00';
+  //   
+  //   // Calculate the valid check-out window for better messaging
+  //   const endCheckOutTime = new new Date(`1970-01-01T${jamPulang}`);
+  //   endCheckOutTime.setHours(endCheckOutTime.getHours() + 2);
+  //   const endCheckOutTimeString = endCheckOutTime.toTimeString().substring(0, 5);
+  //   
+  //   Swal.fire({
+  //     icon: 'warning',
+  //     title: 'Peringatan!',
+  //     text: `Jam check-out yang diperbolehkan: ${jamMasuk} - ${endCheckOutTimeString}. Jika dilanjutkan, Anda akan ditandai sebagai tidak hadir (alpha).`,
+  //     showCancelButton: true,
+  //     confirmButtonText: 'Lanjutkan',
+  //     cancelButtonText: 'Batal'
+  //   }).then((result) => {
+  //     if (result.isConfirmed) {
+  //       performCheckOut();
+  //     }
+  //   });
+  //   return;
+  // }
   
   performCheckOut();
 };
@@ -873,9 +1032,14 @@ const submitPermission = () => {
     return;
   }
   
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
   router.post(route('user.absensi.permission'), {
     keterangan: permissionReason.value,
     jenis_izin: permissionType.value,
+    tanggal_mulai: today,
+    tanggal_selesai: today,
   }, {
     onSuccess: () => {
       showPermissionModal.value = false;
@@ -916,18 +1080,34 @@ const submitLateArrival = () => {
     return;
   }
   
-  router.post(route('user.absensi.checkin'), {
-    lat: null, // We already have location from previous check-in
-    lng: null,
-    keterangan: lateArrivalReason.value,
-  }, {
+  // Check if current time is after checkout time
+  const now = new Date();
+  const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
+  const jamPulang = props.systemSettings?.jam_pulang || '17:00:00';
+  
+  const requestData = {
+    lat: currentLocation.value?.lat || 0, // Use current location or default to 0
+    lng: currentLocation.value?.lng || 0,
+  };
+  
+  // If user is checking in after work hours, mark as absent regardless of late arrival reason
+  if (currentTime > jamPulang) {
+    requestData.outside_working_hours = true;
+    requestData.keterangan = 'Check-in dilakukan di luar jam kerja';
+  } else {
+    requestData.keterangan = lateArrivalReason.value;
+  }
+  
+  router.post(route('user.absensi.checkin'), requestData, {
     onSuccess: () => {
       showLateArrivalModal.value = false;
       lateArrivalReason.value = '';
       Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
-        text: 'Check-in berhasil dicatat dengan keterangan keterlambatan.',
+        text: currentTime > jamPulang 
+          ? 'Check-in berhasil dicatat. Anda telah ditandai sebagai tidak hadir (alpha) karena check-in dilakukan di luar jam kerja.'
+          : 'Check-in berhasil dicatat dengan keterangan keterlambatan.',
         showConfirmButton: false,
         timer: 1500,
         timerProgressBar: true,

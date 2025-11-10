@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
     {
         // Call our custom seeders
         $this->call([
-            BidangSeeder::class,
             SystemSettingSeeder::class,
             UserSeeder::class,
             IzinSeeder::class,

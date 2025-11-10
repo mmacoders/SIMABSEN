@@ -12,12 +12,14 @@ class SystemSetting extends Model
         'location_radius',
         'jam_masuk',
         'jam_pulang',
+        'disable_location_validation', // Add this field
     ];
 
     protected $casts = [
         'location_latitude' => 'decimal:8',
         'location_longitude' => 'decimal:8',
         'location_radius' => 'integer',
+        'disable_location_validation' => 'boolean', // Add casting
     ];
     
     // Remove the datetime casting for time fields as they're stored as TIME type in database

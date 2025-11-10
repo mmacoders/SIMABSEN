@@ -73,19 +73,6 @@
                                 >
                                     <div class="space-y-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
-                                            <select
-                                                v-model="filters.bidang_id"
-                                                class="w-full border border-gray-300 rounded-lg p-2"
-                                            >
-                                                <option value="">Semua Bidang</option>
-                                                <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                                                    {{ bidang.nama_bidang }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
                                             <input
                                                 type="date"
@@ -162,7 +149,6 @@
                                 <thead class="bg-red-600 text-white text-left">
                                     <tr>
                                         <th class="px-6 py-3">Nama</th>
-                                        <th class="px-6 py-3">Bidang</th>
                                         <th class="px-6 py-3">Tanggal</th>
                                         <th class="px-6 py-3">Jam Masuk</th>
                                         <th class="px-6 py-3">Jam Keluar</th>
@@ -173,7 +159,6 @@
                                 <tbody>
                                     <tr v-for="attendance in attendances.data" :key="attendance.id" class="border-b hover:bg-red-50">
                                         <td class="px-6 py-3 font-medium text-gray-900">{{ attendance.user.name }}</td>
-                                        <td class="px-6 py-3 text-gray-700">{{ attendance.user.bidang?.nama_bidang || '-' }}</td>
                                         <td class="px-6 py-3 text-gray-700">{{ formatDate(attendance.tanggal) }}</td>
                                         <td class="px-6 py-3 text-gray-700">{{ attendance.waktu_masuk || '-' }}</td>
                                         <td class="px-6 py-3 text-gray-700">{{ attendance.waktu_keluar || '-' }}</td>
@@ -223,28 +208,31 @@
                                     </p>
                                 </div>
                                 <div>
-                                    <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
-                                        <template v-for="(link, index) in attendances.links" :key="index">
-                                            <span v-if="link.url === null" 
-                                                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed rounded-lg">
-                                                {{ link.label }}
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                        <!-- Previous Button -->
+                                        <a :href="attendances.prev_page_url" 
+                                           :class="attendances.prev_page_url ? 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50' : 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed'">
+                                            <span class="sr-only">Previous</span>
+                                            <ChevronLeftIcon class="h-5 w-5" />
+                                        </a>
+
+                                        <!-- Page Numbers -->
+                                        <template v-for="link in attendances.links" :key="link.label">
+                                            <a v-if="link.url" 
+                                               :href="link.url"
+                                               :class="link.active ? 'z-10 bg-red-50 border-red-500 text-red-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium'"
+                                               v-html="link.label">
+                                            </a>
+                                            <span v-else class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700" v-html="link.label">
                                             </span>
-                                            <a v-else-if="link.label === 'pagination.previous'" 
-                                               :href="link.url"
-                                               class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">
-                                                <ChevronLeftIcon class="h-5 w-5" />
-                                            </a>
-                                            <a v-else-if="link.label === 'pagination.next'" 
-                                               :href="link.url"
-                                               class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">
-                                                <ChevronRightIcon class="h-5 w-5" />
-                                            </a>
-                                            <a v-else 
-                                               :href="link.url"
-                                               :class="link.active ? 'z-10 bg-red-600 text-white relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg'">
-                                                {{ link.label }}
-                                            </a>
                                         </template>
+
+                                        <!-- Next Button -->
+                                        <a :href="attendances.next_page_url" 
+                                           :class="attendances.next_page_url ? 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50' : 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed'">
+                                            <span class="sr-only">Next</span>
+                                            <ChevronRightIcon class="h-5 w-5" />
+                                        </a>
                                     </nav>
                                 </div>
                             </div>
@@ -258,24 +246,24 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
 import SuperAdminHeader from '@/Components/SuperAdminHeader.vue';
 import {
-    FileSpreadsheetIcon,
-    FileDownIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    FileTextIcon,
     SearchIcon,
-    FilterIcon
+    FilterIcon,
+    FileDownIcon,
+    FileSpreadsheetIcon,
+    FileTextIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon
 } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
-// Props
+// Get page props
+const page = usePage();
 const props = defineProps({
     attendances: Object,
-    bidangs: Array,
 });
 
 // State
@@ -288,14 +276,13 @@ const filterButton = ref(null);
 const filterPopover = ref(null);
 
 const filters = ref({
-    bidang_id: '',
     start_date: '',
     end_date: '',
 });
 
 // Computed properties
 const isFilterActive = computed(() => {
-    return filters.value.bidang_id || filters.value.start_date || filters.value.end_date;
+    return filters.value.start_date || filters.value.end_date;
 });
 
 // Methods
@@ -325,7 +312,6 @@ const applyFilters = () => {
 
 const resetFilters = () => {
     filters.value = {
-        bidang_id: '',
         start_date: '',
         end_date: '',
     };

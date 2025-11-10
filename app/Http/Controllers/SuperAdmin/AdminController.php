@@ -4,7 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Bidang;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -14,14 +14,10 @@ class AdminController extends Controller
     public function index()
     {
         // Get all admins with pagination
-        $admins = User::where('role', 'admin')->with('bidang')->paginate(10);
-        
-        // Get all bidangs
-        $bidangs = Bidang::all();
+        $admins = User::where('role', 'admin')->paginate(10);
         
         return Inertia::render('SuperAdmin/KelolaAdmin', [
             'admins' => $admins,
-            'bidangs' => $bidangs,
         ]);
     }
     
@@ -31,7 +27,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'bidang_id' => 'required|exists:bidangs,id',
+            'jabatan' => 'nullable|string|max:255',
         ]);
         
         // Create admin user
@@ -40,7 +36,7 @@ class AdminController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'admin',
-            'bidang_id' => $request->bidang_id,
+            'jabatan' => $request->jabatan,
         ]);
         
         return redirect()->back()->with('success', 'Admin berhasil ditambahkan.');
@@ -59,12 +55,12 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $admin->id,
-            'bidang_id' => 'required|exists:bidangs,id',
+            'jabatan' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
         
         // Update admin
-        $admin->update($request->only('name', 'email', 'bidang_id', 'status'));
+        $admin->update($request->only('name', 'email', 'jabatan', 'status'));
         
         return redirect()->back()->with('success', 'Admin berhasil diperbarui.');
     }
@@ -109,22 +105,20 @@ class AdminController extends Controller
         // Find the admin user
         $admin = User::findOrFail($id);
         
-        $request->validate([
-            'bidang_id' => 'required|exists:bidangs,id',
-        ]);
-        
-        // Ensure we're transferring an admin
+        // Ensure we're updating an admin
         if ($admin->role !== 'admin') {
             abort(403);
         }
         
-        // Update bidang
-        $admin->update([
-            'bidang_id' => $request->bidang_id
+        $request->validate([
+            'jabatan' => 'nullable|string|max:255',
         ]);
         
-        $bidang = Bidang::find($request->bidang_id);
+        // Update jabatan
+        $admin->update([
+            'jabatan' => $request->jabatan
+        ]);
         
-        return redirect()->back()->with('success', "Admin berhasil dipindahkan ke bidang {$bidang->nama_bidang}.");
+        return redirect()->back()->with('success', "Admin berhasil diperbarui jabatannya.");
     }
 }

@@ -42,6 +42,12 @@ const alignmentClasses = computed(() => {
 });
 
 const open = ref(false);
+
+// Prevent closing when clicking inside the dropdown content
+const handleContentClick = (e) => {
+    // Stop propagation to prevent the overlay click handler from closing the dropdown
+    e.stopPropagation();
+};
 </script>
 
 <template>
@@ -75,6 +81,7 @@ const open = ref(false);
                 <div
                     class="rounded-md ring-1 ring-black ring-opacity-5"
                     :class="contentClasses"
+                    @click="handleContentClick"
                 >
                     <slot name="content" />
                 </div>

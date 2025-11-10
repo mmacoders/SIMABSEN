@@ -7,21 +7,20 @@ use App\Models\User;
 use App\Models\Absensi;
 use App\Models\Izin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $admin = auth()->user();
+        $admin = Auth::user();
         
-        // Get users in the same bidang
-        $users = User::where('bidang_id', $admin->bidang_id)->get();
+        // Get all users (since we're removing bidang filter)
+        $users = User::all();
         
-        // Get today's attendance for users in the same bidang
-        $todayAttendances = Absensi::whereHas('user', function ($query) use ($admin) {
-            $query->where('bidang_id', $admin->bidang_id);
-        })->where('tanggal', date('Y-m-d'))->get();
+        // Get today's attendance for all users
+        $todayAttendances = Absensi::where('tanggal', date('Y-m-d'))->with('user')->get();
         
         // Calculate statistics
         $totalUsers = $users->count();
@@ -33,9 +32,7 @@ class DashboardController extends Controller
         $absentToday = $totalUsers - $presentToday;
         
         // Get leave requests for today
-        $leaveToday = Izin::whereHas('user', function ($query) use ($admin) {
-            $query->where('bidang_id', $admin->bidang_id);
-        })->where('tanggal_mulai', '<=', date('Y-m-d'))
+        $leaveToday = Izin::where('tanggal_mulai', '<=', date('Y-m-d'))
           ->where('tanggal_selesai', '>=', date('Y-m-d'))
           ->count();
         

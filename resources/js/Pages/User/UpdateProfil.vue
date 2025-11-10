@@ -122,26 +122,6 @@
                   <div v-if="profileForm.errors.jabatan" class="text-red-500 text-sm mt-1">{{ profileForm.errors.jabatan }}</div>
                 </div>
 
-                <!-- Department -->
-                <div>
-                  <label class="text-sm font-medium text-gray-700 block mb-2">Bidang / Divisi</label>
-                  <select
-                    v-model="profileForm.bidang_id"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
-                    :class="{ 'border-red-500': profileForm.errors.bidang_id }"
-                  >
-                    <option value="">Pilih Bidang</option>
-                    <option 
-                      v-for="bidang in bidangs" 
-                      :key="bidang.id" 
-                      :value="bidang.id"
-                    >
-                      {{ bidang.nama_bidang }}
-                    </option>
-                  </select>
-                  <div v-if="profileForm.errors.bidang_id" class="text-red-500 text-sm mt-1">{{ profileForm.errors.bidang_id }}</div>
-                </div>
-
                 <!-- Password -->
                 <div>
                   <label class="text-sm font-medium text-gray-700 block mb-2">Password Baru</label>
@@ -224,7 +204,6 @@ const originalData = {
     email: props.user.email || '',
     no_hp: props.user.no_hp || '',
     jabatan: props.user.jabatan || '',
-    bidang_id: props.user.bidang_id || '',
     // profile_pict: null,
     nip: props.user.nip || '',
     nrp: props.user.nrp || '',
@@ -236,7 +215,6 @@ const profileForm = useForm({
     email: props.user.email || '',
     no_hp: props.user.no_hp || '',
     jabatan: props.user.jabatan || '',
-    bidang_id: props.user.bidang_id || '',
     profile_pict: null,
     password: '',
     password_confirmation: '',
@@ -288,7 +266,6 @@ const submitProfile = () => {
         email: profileForm.email,
         no_hp: profileForm.no_hp || '',
         jabatan: profileForm.jabatan || '',
-        bidang_id: profileForm.bidang_id || '',
         nip: profileForm.nip || '',
         nrp: profileForm.nrp || '',
         pangkat: profileForm.pangkat || '',
@@ -338,7 +315,6 @@ const cancelChanges = () => {
     profileForm.email = props.user.email || '';
     profileForm.no_hp = props.user.no_hp || '';
     profileForm.jabatan = props.user.jabatan || '';
-    profileForm.bidang_id = props.user.bidang_id || '';
     profileForm.nip = props.user.nip || '';
     profileForm.nrp = props.user.nrp || '';
     profileForm.pangkat = props.user.pangkat || '';

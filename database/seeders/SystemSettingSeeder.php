@@ -20,6 +20,7 @@ class SystemSettingSeeder extends Seeder
                 'location_latitude' => 0.52400050,
                 'location_longitude' => 123.06047523,
                 'location_radius' => 100,
+                'disable_location_validation' => false, // Add this field
                 'jam_masuk' => '08:00:00',
                 'jam_pulang' => '16:00:00',
             ]

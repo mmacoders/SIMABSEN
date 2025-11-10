@@ -44,6 +44,10 @@
                   <span class="text-gray-900 font-medium">{{ user.bidang?.nama_bidang || '-' }}</span>
                 </div>
                 <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                  <span class="text-gray-500">Jabatan</span>
+                  <span class="text-gray-900 font-medium">{{ user.jabatan || '-' }}</span>
+                </div>
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
                   <span class="text-gray-500">Pangkat/NIP/NRP</span>
                   <span class="text-gray-900 font-medium text-right">{{ user.pangkat }}<br>{{ user.nip || user.nrp }}</span>
                 </div>
@@ -167,21 +171,6 @@
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <!-- Map Location -->
-          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <MapPinIcon class="w-6 h-6 text-[#dc2626] mr-2" />
-              📍 Lokasi Kantor POLRES TIK
-            </h2>
-            <div class="h-72 w-full rounded-xl overflow-hidden mt-2 bg-gradient-to-br from-gray-100 to-gray-200">
-              <div ref="mapContainer" class="w-full h-full"></div>
-            </div>
-            <div class="mt-4 text-sm text-gray-600 flex items-center">
-              <MapPinIcon class="w-4 h-4 mr-2 text-[#dc2626]" />
-              <p>Koordinat: {{ officeLocation.lat }}, {{ officeLocation.lng }}</p>
             </div>
           </div>
         </div>

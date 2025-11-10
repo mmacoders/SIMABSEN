@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Bidang;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +13,7 @@ class PegawaiController extends Controller
     public function index(Request $request)
     {
         // Build query for users (same as SuperAdmin)
-        $usersQuery = User::where('role', 'user')->with('bidang');
+        $usersQuery = User::where('role', 'user');
         
         // Apply search filter
         if ($request->search) {
@@ -22,9 +21,7 @@ class PegawaiController extends Controller
             $usersQuery->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhereHas('bidang', function ($q) use ($search) {
-                          $q->where('nama_bidang', 'like', "%{$search}%");
-                      });
+                      ->orWhere('jabatan', 'like', "%{$search}%");
             });
         }
         
@@ -33,21 +30,12 @@ class PegawaiController extends Controller
             $usersQuery->where('status', $request->status);
         }
         
-        // Apply bidang filter
-        if ($request->bidang_id) {
-            $usersQuery->where('bidang_id', $request->bidang_id);
-        }
-        
-        // Get all bidangs for filter dropdown
-        $bidangs = Bidang::all();
-        
         // Paginate results
         $users = $usersQuery->orderBy('name')->paginate(12)->withQueryString();
         
         return Inertia::render('Admin/Pegawai', [
             'users' => $users,
-            'bidangs' => $bidangs,
-            'filters' => $request->only(['search', 'status', 'bidang_id']),
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
     
@@ -57,9 +45,6 @@ class PegawaiController extends Controller
         if ($user->role !== 'user') {
             abort(404);
         }
-        
-        // Load user with bidang
-        $user->load('bidang');
         
         // Get attendance statistics for current month
         $currentMonth = now()->format('Y-m');
@@ -92,53 +77,11 @@ class PegawaiController extends Controller
             }
         }
         
-        // Get all bidangs for edit form
-        $bidangs = Bidang::all();
-        
         return Inertia::render('Admin/PegawaiDetail', [
             'pegawai' => $user,
             'stats' => $stats,
             'attendances' => $attendances,
-            'bidangs' => $bidangs,
         ]);
-    }
-    
-    public function update(Request $request, User $user)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'no_hp' => 'nullable|string|max:20',
-            'pangkat' => 'nullable|string|max:255',
-            'nip' => 'nullable|string|max:50',
-            'nrp' => 'nullable|string|max:50',
-            'bidang_id' => 'required|exists:bidangs,id',
-            'jabatan' => 'nullable|string|max:255',
-            'status' => 'required|in:aktif,nonaktif',
-        ]);
-        
-        // Handle NIP/NRP logic - only one should be filled
-        $nip = $request->nip;
-        $nrp = $request->nrp;
-        
-        // If both are provided, we'll use NIP and clear NRP
-        if ($nip && $nrp) {
-            $nrp = null;
-        }
-        
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'no_hp' => $request->no_hp,
-            'pangkat' => $request->pangkat,
-            'nip' => $nip,
-            'nrp' => $nrp,
-            'bidang_id' => $request->bidang_id,
-            'jabatan' => $request->jabatan,
-            'status' => $request->status,
-        ]);
-        
-        return redirect()->back()->with('success', 'Data pegawai berhasil diperbarui.');
     }
     
     public function toggleStatus(User $user)

@@ -55,19 +55,15 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <InputLabel for="bidang_id" value="Bidang" class="text-gray-700 font-medium" />
-        <select
-          id="bidang_id"
+        <InputLabel for="jabatan" value="Jabatan" class="text-gray-700 font-medium" />
+        <TextInput
+          id="jabatan"
+          type="text"
           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
-          v-model="form.bidang_id"
+          v-model="form.jabatan"
           required
-        >
-          <option value="">Pilih Bidang</option>
-          <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-            {{ bidang.nama_bidang }}
-          </option>
-        </select>
-        <InputError class="mt-2" :message="form.errors.bidang_id" />
+        />
+        <InputError class="mt-2" :message="form.errors.jabatan" />
       </div>
 
       <div v-if="isEdit">
@@ -116,10 +112,6 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  bidangs: {
-    type: Array,
-    required: true
-  },
   isEdit: {
     type: Boolean,
     default: false
@@ -134,7 +126,7 @@ const form = useForm({
   email: props.admin?.email || '',
   password: '',
   password_confirmation: '',
-  bidang_id: props.admin?.bidang_id || '',
+  jabatan: props.admin?.jabatan || '',
   status: props.admin?.status || 'active'
 });
 

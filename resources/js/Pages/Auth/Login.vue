@@ -18,13 +18,13 @@ defineProps({
 
 const form = useForm({
     email: '',
-    password: '',
+    nrp: '',
     remember: false,
 });
 
 const submit = () => {
     form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+        onFinish: () => form.reset('nrp'),
     });
 };
 </script>
@@ -55,18 +55,17 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="nrp" value="NRP" />
 
                 <TextInput
-                    id="password"
-                    type="password"
+                    id="nrp"
+                    type="text"
                     class="mt-1 block w-full"
-                    v-model="form.password"
+                    v-model="form.nrp"
                     required
-                    autocomplete="current-password"
                 />
 
-                <InputError class="mt-2" :message="form.errors.password" />
+                <InputError class="mt-2" :message="form.errors.nrp" />
             </div>
 
             <div class="mt-4 block">

@@ -1,8 +1,6 @@
-Super Admin =   Laporan Global Sudah Dibuat (v)
-                Pengaturan sistem sudah dibuat (v)
-                Kelola Admin sudah Dibuat (v)
-                kelola pegawai di improve
-Admin = DONE
+Super Admin =  Perbaiki breadcumb
+
+Admin = Atur tampilan izin cuti
 
 User = DONE
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Bidang;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +15,7 @@ class PegawaiController extends Controller
     public function index(Request $request)
     {
         // Build query for users
-        $usersQuery = User::where('role', 'user')->with('bidang');
+        $usersQuery = User::where('role', 'user');
         
         // Apply search filter
         if ($request->search) {
@@ -24,9 +23,7 @@ class PegawaiController extends Controller
             $usersQuery->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhereHas('bidang', function ($q) use ($search) {
-                          $q->where('nama_bidang', 'like', "%{$search}%");
-                      });
+                      ->orWhere('jabatan', 'like', "%{$search}%");
             });
         }
         
@@ -35,21 +32,12 @@ class PegawaiController extends Controller
             $usersQuery->where('status', $request->status);
         }
         
-        // Apply bidang filter
-        if ($request->bidang_id) {
-            $usersQuery->where('bidang_id', $request->bidang_id);
-        }
-        
-        // Get all bidangs for filter dropdown
-        $bidangs = Bidang::all();
-        
         // Paginate results
         $users = $usersQuery->orderBy('name')->paginate(12)->withQueryString();
         
         return Inertia::render('SuperAdmin/KelolaPegawai', [
             'users' => $users,
-            'bidangs' => $bidangs,
-            'filters' => $request->only(['search', 'status', 'bidang_id']),
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
     
@@ -59,9 +47,6 @@ class PegawaiController extends Controller
         if ($user->role !== 'user') {
             abort(404);
         }
-        
-        // Load user with bidang
-        $user->load('bidang');
         
         // Get attendance statistics for current month
         $currentMonth = now()->format('Y-m');
@@ -94,14 +79,10 @@ class PegawaiController extends Controller
             }
         }
         
-        // Get all bidangs for edit form
-        $bidangs = Bidang::all();
-        
         return Inertia::render('SuperAdmin/DetailPegawai', [
             'pegawai' => $user,
             'stats' => $stats,
             'attendances' => $attendances,
-            'bidangs' => $bidangs,
         ]);
     }
     
@@ -114,7 +95,6 @@ class PegawaiController extends Controller
             'pangkat' => 'nullable|string|max:255',
             'nip' => 'nullable|string|max:50',
             'nrp' => 'nullable|string|max:50',
-            'bidang_id' => 'required|exists:bidangs,id',
             'jabatan' => 'nullable|string|max:255',
             'status' => 'required|in:aktif,nonaktif',
         ]);
@@ -137,7 +117,6 @@ class PegawaiController extends Controller
             'pangkat' => $request->pangkat,
             'nip' => $nip,
             'nrp' => $nrp,
-            'bidang_id' => $request->bidang_id,
             'jabatan' => $request->jabatan,
             'status' => $request->status,
             'role' => 'user', // Pegawai role
@@ -160,7 +139,6 @@ class PegawaiController extends Controller
             'pangkat' => 'nullable|string|max:255',
             'nip' => 'nullable|string|max:50',
             'nrp' => 'nullable|string|max:50',
-            'bidang_id' => 'required|exists:bidangs,id',
             'jabatan' => 'nullable|string|max:255',
             'status' => 'required|in:aktif,nonaktif',
             'profile_pict' => 'nullable|string|max:255'
@@ -182,7 +160,6 @@ class PegawaiController extends Controller
             'pangkat' => $request->pangkat,
             'nip' => $nip,
             'nrp' => $nrp,
-            'bidang_id' => $request->bidang_id,
             'jabatan' => $request->jabatan,
             'status' => $request->status,
             'profile_pict' => $request->profile_pict,

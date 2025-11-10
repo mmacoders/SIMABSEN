@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Bidang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -20,12 +19,8 @@ class ProfilController extends Controller
             $user->profile_pict_url = Storage::url($user->profile_pict);
         }
         
-        // Get all bidangs for the profile form
-        $bidangs = Bidang::all();
-        
         return inertia('User/UpdateProfil', [
             'user' => $user,
-            'bidangs' => $bidangs,
         ]);
     }
     
@@ -48,7 +43,6 @@ class ProfilController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'no_hp' => ['nullable', 'string', 'max:20'],
-            'bidang_id' => ['nullable', 'exists:bidangs,id'],
             'profile_pict' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
@@ -87,7 +81,7 @@ class ProfilController extends Controller
         }
         
         // Update other fields that were sent
-        $fillableFields = ['nip', 'nrp', 'pangkat', 'jabatan', 'no_hp', 'bidang_id'];
+        $fillableFields = ['nip', 'nrp', 'pangkat', 'jabatan', 'no_hp'];
         foreach ($fillableFields as $field) {
             if (array_key_exists($field, $validated)) {
                 $user->$field = $validated[$field];

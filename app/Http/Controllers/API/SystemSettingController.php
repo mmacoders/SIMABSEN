@@ -21,6 +21,7 @@ class SystemSettingController extends Controller
                 'location_latitude' => 0.52400050,
                 'location_longitude' => 123.06047523,
                 'location_radius' => 100,
+                'disable_location_validation' => false,
                 'jam_masuk' => '08:00:00',
                 'jam_pulang' => '16:00:00',
             ]);
@@ -39,6 +40,7 @@ class SystemSettingController extends Controller
             'location_latitude' => 'required|numeric|between:-90,90',
             'location_longitude' => 'required|numeric|between:-180,180',
             'location_radius' => 'required|integer|min:10|max:1000',
+            'disable_location_validation' => 'boolean',
             'jam_masuk' => 'required|string|regex:/^\d{2}:\d{2}(:\d{2})?$/',
             'jam_pulang' => 'required|string|regex:/^\d{2}:\d{2}(:\d{2})?$/',
         ], [
@@ -52,6 +54,7 @@ class SystemSettingController extends Controller
             'location_radius.integer' => 'Radius harus berupa angka bulat.',
             'location_radius.min' => 'Radius minimal 10 meter.',
             'location_radius.max' => 'Radius maksimal 1000 meter.',
+            'disable_location_validation.boolean' => 'Nilai validasi lokasi harus berupa boolean.',
             'jam_masuk.required' => 'Jam masuk wajib diisi.',
             'jam_masuk.regex' => 'Format jam masuk tidak valid. Gunakan format HH:mm atau HH:mm:ss.',
             'jam_pulang.required' => 'Jam pulang wajib diisi.',
@@ -100,6 +103,7 @@ class SystemSettingController extends Controller
         $settings->location_latitude = $request->location_latitude;
         $settings->location_longitude = $request->location_longitude;
         $settings->location_radius = $request->location_radius;
+        $settings->disable_location_validation = $request->disable_location_validation ?? false;
         
         // Handle time formatting - ensure we store in HH:mm:ss format
         $settings->jam_masuk = strlen($request->jam_masuk) === 5 ? $request->jam_masuk . ':00' : $request->jam_masuk;
@@ -114,5 +118,46 @@ class SystemSettingController extends Controller
             'message' => 'Pengaturan berhasil disimpan.',
             'data' => $settings
         ]);
+    }
+    
+    // New endpoint to toggle location validation
+    public function toggleLocationValidation(Request $request)
+    {
+        $settings = SystemSetting::first();
+        
+        if (!$settings) {
+            $settings = SystemSetting::create([
+                'location_latitude' => 0.52400050,
+                'location_longitude' => 123.06047523,
+                'location_radius' => 100,
+                'disable_location_validation' => false,
+                'jam_masuk' => '08:00:00',
+                'jam_pulang' => '16:00:00',
+            ]);
+        }
+        
+        // Toggle the disable_location_validation field
+        $settings->disable_location_validation = !$settings->disable_location_validation;
+        $settings->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => $settings->disable_location_validation 
+                ? 'Validasi lokasi telah dinonaktifkan.' 
+                : 'Validasi lokasi telah diaktifkan.',
+            'data' => $settings
+        ]);
+    }
+
+    // New endpoint for user testing mode (doesn't affect the actual setting)
+    public function toggleTestMode(Request $request)
+    {
+        // Toggle a session variable for testing mode
+        $currentMode = $request->session()->get('testing_mode_disabled', false);
+        $newMode = !$currentMode;
+        
+        $request->session()->put('testing_mode_disabled', $newMode);
+        
+        
     }
 }

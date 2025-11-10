@@ -20,6 +20,7 @@ class SystemSettingController extends Controller
                 'location_latitude' => 0.52400050,
                 'location_longitude' => 123.06047523,
                 'location_radius' => 100,
+                'disable_location_validation' => false,
                 'jam_masuk' => '08:00:00',
                 'jam_pulang' => '16:00:00',
             ]);
@@ -30,6 +31,7 @@ class SystemSettingController extends Controller
             'location_latitude' => $settings->location_latitude,
             'location_longitude' => $settings->location_longitude,
             'location_radius' => $settings->location_radius,
+            'disable_location_validation' => $settings->disable_location_validation,
             'work_start_time' => $settings->jam_masuk,
             'work_end_time' => $settings->jam_pulang,
         ];
@@ -48,7 +50,7 @@ class SystemSettingController extends Controller
         ]);
         
         // Create new setting
-        $setting = Setting::create([
+        $setting = SystemSetting::create([
             'key' => $request->name,
             'value' => $request->value,
             'description' => $request->description,
@@ -64,6 +66,7 @@ class SystemSettingController extends Controller
             'location_latitude' => 'required|numeric|between:-90,90',
             'location_longitude' => 'required|numeric|between:-180,180',
             'location_radius' => 'required|integer|min:10|max:1000',
+            'disable_location_validation' => 'boolean',
             'work_start_time' => 'required|string|regex:/^\d{2}:\d{2}(:\d{2})?$/',
             'work_end_time' => 'required|string|regex:/^\d{2}:\d{2}(:\d{2})?$/',
         ]);
@@ -79,6 +82,7 @@ class SystemSettingController extends Controller
         $settings->location_latitude = $request->location_latitude;
         $settings->location_longitude = $request->location_longitude;
         $settings->location_radius = $request->location_radius;
+        $settings->disable_location_validation = $request->disable_location_validation ?? false;
         
         // Handle time formatting - ensure we store in HH:mm:ss format
         $settings->jam_masuk = strlen($request->work_start_time) === 5 ? $request->work_start_time . ':00' : $request->work_start_time;

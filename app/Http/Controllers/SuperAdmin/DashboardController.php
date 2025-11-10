@@ -4,7 +4,6 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Bidang;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,25 +16,14 @@ class DashboardController extends Controller
         // Get statistics
         $totalUsers = User::where('role', 'user')->count();
         $totalAdmins = User::where('role', 'admin')->count();
-        $totalBidangs = Bidang::count();
         
         // Get today's attendance summary
         $todayAttendances = Absensi::where('tanggal', date('Y-m-d'))->get();
         $presentToday = $todayAttendances->whereNotNull('waktu_masuk')->count();
         $absentToday = $totalUsers - $presentToday;
         
-        // Get attendance by bidang
-        $bidangStats = Bidang::withCount(['users as total_users' => function ($query) {
-                        $query->where('role', 'user');
-                    }])
-                    ->withCount(['users as present_today' => function ($query) {
-                        $query->where('role', 'user')
-                              ->whereHas('absensis', function ($subQuery) {
-                                  $subQuery->where('tanggal', date('Y-m-d'))
-                                           ->whereNotNull('waktu_masuk');
-                              });
-                    }])
-                    ->get();
+        // Get attendance by jabatan (instead of bidang)
+        $jabatanStats = $this->getJabatanStats();
         
         // Get weekly attendance data for charts
         $weeklyAttendance = $this->getWeeklyAttendanceData();
@@ -43,12 +31,44 @@ class DashboardController extends Controller
         return Inertia::render('SuperAdmin/Dashboard', [
             'totalUsers' => $totalUsers,
             'totalAdmins' => $totalAdmins,
-            'totalBidangs' => $totalBidangs,
             'presentToday' => $presentToday,
             'absentToday' => $absentToday,
-            'bidangStats' => $bidangStats,
+            'jabatanStats' => $jabatanStats,
             'weeklyAttendance' => $weeklyAttendance,
         ]);
+    }
+    
+    private function getJabatanStats()
+    {
+        // Get all users grouped by jabatan
+        $users = User::where('role', 'user')->get();
+        
+        $jabatanGroups = [];
+        foreach ($users as $user) {
+            $jabatan = $user->jabatan ?? 'Belum Diatur';
+            
+            if (!isset($jabatanGroups[$jabatan])) {
+                $jabatanGroups[$jabatan] = [
+                    'name' => $jabatan,
+                    'total_users' => 0,
+                    'present_today' => 0
+                ];
+            }
+            
+            $jabatanGroups[$jabatan]['total_users']++;
+            
+            // Check if user is present today
+            $todayAttendance = Absensi::where('user_id', $user->id)
+                ->where('tanggal', date('Y-m-d'))
+                ->whereNotNull('waktu_masuk')
+                ->first();
+                
+            if ($todayAttendance) {
+                $jabatanGroups[$jabatan]['present_today']++;
+            }
+        }
+        
+        return array_values($jabatanGroups);
     }
     
     private function getWeeklyAttendanceData()

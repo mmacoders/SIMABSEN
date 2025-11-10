@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Bidang;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -49,16 +48,6 @@ class CreateTestUser extends Command
             return 1;
         }
         
-        // Get a random bidang for user and admin roles
-        $bidang = null;
-        if ($role !== 'superadmin') {
-            $bidang = Bidang::inRandomOrder()->first();
-            if (!$bidang) {
-                $this->error('No bidang found. Please run the bidang seeder first.');
-                return 1;
-            }
-        }
-        
         for ($i = 1; $i <= $count; $i++) {
             // Generate unique email
             $email = "test{$role}{$i}@polda.go.id";
@@ -75,7 +64,6 @@ class CreateTestUser extends Command
                 'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => $role,
-                'bidang_id' => $bidang ? $bidang->id : null,
                 'status' => 'active',
             ];
             

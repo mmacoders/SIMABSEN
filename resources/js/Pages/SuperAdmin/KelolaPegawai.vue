@@ -73,7 +73,7 @@
                       Email
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                      Bidang
+                      Jabatan
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                       Status
@@ -107,7 +107,7 @@
                       <div class="text-sm">{{ user.email }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm">{{ user.bidang?.nama_bidang || '-' }}</div>
+                      <div class="text-sm">{{ user.jabatan || '-' }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <span 
@@ -262,22 +262,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <InputLabel for="bidang_id" value="Bidang" class="text-gray-700 font-medium" />
-                <select
-                  id="bidang_id"
-                  class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
-                  v-model="userForm.bidang_id"
-                  required
-                >
-                  <option value="">Pilih Bidang</option>
-                  <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                    {{ bidang.nama_bidang }}
-                  </option>
-                </select>
-                <InputError class="mt-2" :message="userForm.errors.bidang_id" />
-              </div>
-
-              <div>
                 <InputLabel for="jabatan" value="Jabatan" class="text-gray-700 font-medium" />
                 <TextInput
                   id="jabatan"
@@ -399,11 +383,6 @@
                     </div>
                     
                     <div>
-                      <p class="text-sm text-gray-500">Bidang</p>
-                      <p class="font-medium">{{ detailUser.bidang?.nama_bidang || '-' }}</p>
-                    </div>
-                    
-                    <div>
                       <p class="text-sm text-gray-500">Jabatan</p>
                       <p class="font-medium">{{ detailUser.jabatan }}</p>
                     </div>
@@ -483,7 +462,6 @@ import debounce from 'lodash/debounce';
 const page = usePage();
 const props = defineProps({
   users: Object,
-  bidangs: Array,
 });
 
 // State
@@ -510,7 +488,7 @@ const userForm = useForm({
   nrp: '',
   nip: '',
   no_hp: '',
-  bidang_id: '',
+
   jabatan: '',
   status: 'aktif',
 });
@@ -525,7 +503,7 @@ const filteredUsers = computed(() => {
     result = result.filter(user => 
       user.name.toLowerCase().includes(query) || 
       user.email.toLowerCase().includes(query) ||
-      (user.bidang?.nama_bidang && user.bidang.nama_bidang.toLowerCase().includes(query))
+      (user.jabatan && user.jabatan.toLowerCase().includes(query))
     );
   }
   
@@ -636,7 +614,7 @@ const editUser = (user) => {
   userForm.nrp = user.nrp;
   userForm.nip = user.nip;
   userForm.no_hp = user.no_hp;
-  userForm.bidang_id = user.bidang_id;
+
   userForm.jabatan = user.jabatan;
   userForm.status = user.status;
   showEditModal.value = true;

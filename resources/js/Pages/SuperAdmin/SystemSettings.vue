@@ -83,6 +83,19 @@
                                             </div>
                                             <InputError class="mt-2" :message="settingsForm.errors.location_radius" />
                                         </div>
+                                        
+                                        <!-- Toggle for disabling location validation -->
+                                        <div class="mt-4 flex items-center">
+                                            <input
+                                                id="disable_location_validation"
+                                                type="checkbox"
+                                                class="rounded border-gray-300 text-[#C62828] shadow-sm focus:ring-[#C62828]"
+                                                v-model="settingsForm.disable_location_validation"
+                                            />
+                                            <label for="disable_location_validation" class="ml-2 block text-sm text-gray-900">
+                                                Nonaktifkan validasi lokasi (memungkinkan absensi dari lokasi mana pun)
+                                            </label>
+                                        </div>
                                     </div>
                                     
                                     <!-- Work Hours Settings -->
@@ -170,6 +183,7 @@ const settingsForm = useForm({
     location_latitude: props.settings.location_latitude || '0.524000504793017',
     location_longitude: props.settings.location_longitude || '123.06047523547292',
     location_radius: props.settings.location_radius || '100',
+    disable_location_validation: props.settings.disable_location_validation || false,
     work_start_time: props.settings.work_start_time || '08:00:00',
     work_end_time: props.settings.work_end_time || '16:00:00',
 });

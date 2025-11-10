@@ -1,54 +1,149 @@
- Refactor dua komponen `sidebar.vue` dan `header.vue` agar layout dashboard konsisten: sidebar tetap fixed di sisi kiri layar, sementara header dan konten utama sejajar di kanan sidebar.
+ Buatkan **modal verifikasi permintaan izin** untuk sistem absensi pegawai berbasis **Laravel (backend)** dan **Vue.js (frontend)**.
 
- **Tujuan:**
+ Modal ini digunakan oleh **Admin atau Superadmin** untuk **meninjau permintaan izin pegawai**, lalu **memutuskan apakah permintaan diterima atau ditolak**.
 
- * Sidebar tidak berubah posisinya (tetap `fixed`, tinggi layar penuh).
- * Header muncul di sebelah kanan sidebar, bukan di atasnya.
- * Saat sidebar dikompres (collapsed), header menyesuaikan lebar sidebar dengan transisi halus.
- * Breadcrumb dan toggle sidebar muncul di area header bagian kiri, tidak tertutupi sidebar.
+ Desain harus **modern, profesional, ringan, dan responsif di semua perangkat (desktop, tablet, mobile)**.
 
- **Instruksi Refactor:**
+ Gunakan kombinasi warna **merah (#dc2626), hitam (#111827), dan putih (#ffffff)** yang elegan serta konsisten dengan gaya sistem POLDA.
 
- 1. Pada `sidebar.vue`:
+ 🧱 **1️⃣ Struktur Modal**
 
-    * Tetap gunakan `position: fixed` dan `h-screen`.
-    * Tambahkan z-index `z-20` untuk memastikan sidebar berada di bawah header dropdown, tetapi tidak menutupi header utama.
-    * Pastikan class `w-64` (expanded) dan `w-20` (collapsed) tetap digunakan, dikontrol dengan `isCollapsed`.
-    * Tambahkan event emit `@toggle-collapse` agar state collapse dapat disinkronkan dengan layout utama.
- 2. Pada `header.vue`:
+* Overlay: `bg-black/40 backdrop-blur-sm fixed inset-0 flex items-center justify-center z-50`
+* Kontainer utama:
 
-    * Tambahkan prop `isCollapsed` untuk menerima status dari sidebar.
-    * Tambahkan binding dinamis pada header:
+  * `bg-white rounded-2xl shadow-xl p-6 w-full max-w-md`
+  * Transisi halus (`scale-95 → scale-100`, `opacity-0 → opacity-100`)
+* Elemen:
 
-      ```html
-      <header 
-        class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30 transition-all duration-300"
-        :class="[isCollapsed ? 'md:ml-20' : 'md:ml-64']"
-      
-      ```
-    * Pastikan breadcrumb dan tombol toggle sidebar tetap berada di sisi kiri header.
-    * Pastikan header memiliki lebar penuh area konten (bukan 100vw).
- 3. Di layout utama (misalnya `AdminLayout.vue`):
+  1. Header (judul + tombol close)
+  2. Informasi permintaan izin (read-only)
+  3. Form keputusan (radio: terima / tolak)
+  4. Kolom catatan (opsional)
+  5. Tombol aksi
 
-    * Bungkus dengan flex horizontal:
+---
 
-      ```html
-      <div class="flex min-h-screen"
-        <Sidebar :sidebar-open="sidebarOpen" @toggle-collapse="isCollapsed = !isCollapsed" /
-        <div class="flex-1 flex flex-col w-full transition-all duration-300"
-          <Header :is-collapsed="isCollapsed" @toggle-sidebar="sidebarOpen = !sidebarOpen" /
-          <main class="flex-1 bg-gray-50 p-6 transition-all duration-300"
-            :class="[isCollapsed ? 'md:ml-20' : 'md:ml-64']"
-            <slot /
-          </main
-        </div
-      </div
-      ```
- 4. Gunakan transisi `transition-all duration-300` pada margin atau lebar agar pergeseran terasa halus saat sidebar dibuka/tutup.
+ 🧭 **2️⃣ Header Modal**
 
- **Hasil yang diharapkan:**
+Desain dengan ikon dan teks:
 
- * Sidebar tetap berada di sisi kiri layar sepanjang waktu.
- * Header dan konten utama berada di sebelah kanan sidebar, sejajar secara horizontal.
- * Saat sidebar dikompres, area header dan konten melebar otomatis tanpa “melompat.”
- * Breadcrumb dan toggle sidebar selalu tampak di dalam header di posisi kiri atas area konten.
+```vue
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-2">
+    <CheckCircleIcon class="w-5 h-5 text-[#dc2626]" />
+    <h2 class="text-lg font-semibold text-gray-900">Verifikasi Permintaan Izin</h2>
+  </div>
+  <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition">
+    <XMarkIcon class="w-5 h-5" />
+  </button>
+</div>
+```
+
+---
+
+ 📋 **3️⃣ Informasi Permintaan Izin (Read-only)**
+
+Gunakan tampilan seperti **card ringkas**, agar admin bisa cepat membaca datanya.
+
+```vue
+<div class="bg-gray-50 rounded-xl border border-gray-100 p-4 mb-4 space-y-2 text-sm">
+  <div><span class="font-medium text-gray-700">Pegawai:</span> {{ izin.pegawai_nama }}</div>
+  <div><span class="font-medium text-gray-700">Tanggal:</span> {{ formatTanggal(izin.tanggal_mulai) }} – {{ formatTanggal(izin.tanggal_selesai) }}</div>
+  <div><span class="font-medium text-gray-700">Jenis Izin:</span> {{ izin.jenis_izin === 'penuh' ? 'Izin Penuh' : 'Izin Parsial' }}</div>
+  <div><span class="font-medium text-gray-700">Keterangan:</span> {{ izin.keterangan || '-' }}</div>
+</div>
+```
+
+---
+
+ ✅ **4️⃣ Form Keputusan (Admin Action)**
+
+Admin memilih apakah izin diterima atau ditolak.
+
+```vue
+<div class="mb-4">
+  <label class="block text-sm font-medium text-gray-700 mb-2">Keputusan</label>
+  <div class="flex items-center gap-6">
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" v-model="form.status" value="disetujui" class="text-green-600 focus:ring-green-600" />
+      <span class="text-gray-800 font-medium">Terima</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" v-model="form.status" value="ditolak" class="text-[#dc2626] focus:ring-[#dc2626]" />
+      <span class="text-gray-800 font-medium">Tolak</span>
+    </label>
+  </div>
+</div>
+```
+
+---
+
+ 💬 **5️⃣ Catatan Tambahan**
+
+Jika admin memilih *“Tolak”*, tambahkan catatan alasan (opsional tapi disarankan).
+
+```vue
+<div v-if="form.status === 'ditolak'" class="mt-3">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Penolakan</label>
+  <textarea v-model="form.catatan"
+            placeholder="Tuliskan alasan penolakan izin..."
+            class="w-full border-gray-300 focus:ring-[#dc2626] focus:border-[#dc2626] rounded-lg text-gray-800 h-24 resize-none"></textarea>
+</div>
+```
+
+---
+
+ 🎯 **6️⃣ Tombol Aksi**
+
+Dua tombol dengan posisi sejajar, berkontras tinggi.
+
+```vue
+<div class="flex justify-end gap-3 mt-6">
+  <button type="button" @click="closeModal"
+          class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition">
+    Batal
+  </button>
+  <button type="submit"
+          class="px-4 py-2 rounded-lg bg-[#dc2626] text-white font-medium hover:bg-red-700 transition">
+    Simpan Keputusan
+  </button>
+</div>
+```
+
+---
+
+ ⚙️ **7️⃣ UX Enhancement**
+
+* Tambahkan **animasi transisi halus**
+
+  * `transition-all duration-300 ease-in-out`
+* Tambahkan **feedback visual**:
+
+  * ✅ Toast: “Permintaan izin telah disetujui”
+  * ❌ Toast: “Permintaan izin ditolak”
+* Gunakan loading spinner kecil saat menyimpan
+* Aksesibilitas:
+
+  * Tekan `Esc` untuk menutup modal
+  * Fokus otomatis ke pilihan keputusan saat modal terbuka
+
+---
+
+ 📱 **8️⃣ Responsiveness**
+
+* Mobile: elemen disusun **vertikal penuh**
+* Tablet/Desktop: tetap **centered**
+* Pastikan tombol tidak keluar viewport
+* Pastikan teks panjang tidak memotong border (gunakan `break-words`)
+
+---
+
+ 9️⃣ Output Diharapkan**
+
+Modal verifikasi ini:
+
+* Memunculkan data izin secara ringkas
+* Menampilkan dua opsi tindakan (Terima / Tolak)
+* Menyediakan catatan opsional bila ditolak
+* Memiliki animasi lembut, desain modern, dan responsif
+* Konsisten warna merah–hitam–putih sesuai brand instansi

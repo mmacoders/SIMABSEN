@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class LaporanController extends Controller
 {
@@ -19,14 +18,13 @@ class LaporanController extends Controller
         $startDate = request('start_date', date('Y-m-01'));
         $endDate = request('end_date', date('Y-m-t'));
         
-        // Get users in the same bidang
-        $users = User::where('bidang_id', $admin->bidang_id)
-                    ->where('role', 'user')
+        // Get all users (since we're not using bidang anymore)
+        $users = User::where('role', 'user')
                     ->get();
         
         // Get attendance records for the date range
-        $attendances = Absensi::whereHas('user', function ($query) use ($admin) {
-                        $query->where('bidang_id', $admin->bidang_id);
+        $attendances = Absensi::whereHas('user', function ($query) {
+                        $query->where('role', 'user');
                     })
                     ->whereBetween('tanggal', [$startDate, $endDate])
                     ->with('user')
@@ -50,21 +48,20 @@ class LaporanController extends Controller
         $endDate = $request->end_date;
         
         // Get attendance records for export
-        $attendances = Absensi::whereHas('user', function ($query) use ($admin) {
-                        $query->where('bidang_id', $admin->bidang_id);
+        $attendances = Absensi::whereHas('user', function ($query) {
+                        $query->where('role', 'user');
                     })
                     ->whereBetween('tanggal', [$startDate, $endDate])
-                    ->join('users', 'absensis.user_id', '=', 'users.id')
-                    ->select('absensis.*', 'users.name as user_name')
+                    ->with('user')
                     ->orderBy('tanggal', 'desc')
-                    ->orderBy('users.name')
+                    ->orderBy('user.name')
                     ->get();
         
         // Create CSV content
         $csvData = "Nama,Tanggal,Masuk,Keluar,Status,Keterangan\n";
         
         foreach ($attendances as $attendance) {
-            $csvData .= '"' . $attendance->user_name . '",';
+            $csvData .= '"' . $attendance->user->name . '",';
             $csvData .= '"' . $attendance->tanggal . '",';
             $csvData .= '"' . ($attendance->waktu_masuk ?? '-') . '",';
             $csvData .= '"' . ($attendance->waktu_keluar ?? '-') . '",';

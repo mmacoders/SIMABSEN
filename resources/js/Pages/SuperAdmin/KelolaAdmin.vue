@@ -81,7 +81,7 @@
                       Email
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                      Bidang
+                      Jabatan
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                       Status
@@ -112,7 +112,7 @@
                       <div class="text-sm ">{{ admin.email }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm ">{{ admin.bidang?.nama_bidang || '-' }}</div>
+                      <div class="text-sm ">{{ admin.jabatan || '-' }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <span 
@@ -182,7 +182,6 @@
 
           <AdminForm 
             :admin="editingAdmin"
-            :bidangs="bidangs"
             :is-edit="showEditModal"
             @submit="handleSubmit"
             @cancel="closeModal"
@@ -211,6 +210,7 @@
                     @error="handleImageError"
                   />
                   <h4 class="text-lg font-bold text-gray-900">{{ detailAdmin.name }}</h4>
+                  <p class="text-gray-600">{{ detailAdmin.jabatan }}</p>
                   <div class="mt-3">
                     <span 
                       v-if="detailAdmin.status === 'active'"
@@ -230,7 +230,7 @@
               
               <div class="md:col-span-2">
                 <div class="bg-white rounded-2xl border border-gray-200 p-6">
-                  <h5 class="text-lg font-bold text-gray-900 mb-4">Informasi Admin</h5>
+                  <h5 class="text-lg font-bold text-gray-900 mb-4">Informasi Pribadi</h5>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p class="text-sm text-gray-500">Nama Lengkap</p>
@@ -243,18 +243,24 @@
                     </div>
                     
                     <div>
-                      <p class="text-sm text-gray-500">Bidang</p>
-                      <p class="font-medium">{{ detailAdmin.bidang?.nama_bidang || '-' }}</p>
+                      <p class="text-sm text-gray-500">Jabatan</p>
+                      <p class="font-medium">{{ detailAdmin.jabatan }}</p>
                     </div>
                     
                     <div>
                       <p class="text-sm text-gray-500">Status</p>
                       <p class="font-medium">
                         <span 
-                          :class="detailAdmin.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
-                          class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          v-if="detailAdmin.status === 'active'"
+                          class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
                         >
-                          {{ detailAdmin.status === 'active' ? 'Aktif' : 'Nonaktif' }}
+                          Aktif
+                        </span>
+                        <span 
+                          v-else
+                          class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                        >
+                          Nonaktif
                         </span>
                       </p>
                     </div>
@@ -301,11 +307,16 @@
 import { ref, computed, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import AdminForm from '@/Components/AdminForm.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import AdminForm from '@/Components/AdminForm.vue';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
 import SuperAdminHeader from '@/Components/SuperAdminHeader.vue';
 import Pagination from '@/Components/Pagination.vue';
+import InputError from '@/Components/InputError.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import TextInput from '@/Components/TextInput.vue';
 import {
   SearchIcon,
   PlusCircleIcon,
@@ -314,17 +325,16 @@ import {
   TrashIcon,
   UsersIcon,
   UserIcon,
-  XIcon
+  XIcon,
+  LockIcon
 } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
-const props = defineProps({
-  admins: Object,
-  bidangs: Array,
-});
-
 // Get page props
 const page = usePage();
+const props = defineProps({
+  admins: Object,
+});
 
 // State
 const sidebarOpen = ref(true);
@@ -348,7 +358,7 @@ const adminForm = useForm({
   email: '',
   password: '',
   password_confirmation: '',
-  bidang_id: '',
+  jabatan: '',
   status: 'active',
 });
 
@@ -362,7 +372,7 @@ const filteredAdmins = computed(() => {
     result = result.filter(admin => 
       admin.name.toLowerCase().includes(query) || 
       admin.email.toLowerCase().includes(query) ||
-      (admin.bidang?.nama_bidang && admin.bidang.nama_bidang.toLowerCase().includes(query))
+      (admin.jabatan && admin.jabatan.toLowerCase().includes(query))
     );
   }
   

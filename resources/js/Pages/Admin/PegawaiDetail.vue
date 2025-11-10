@@ -1,123 +1,73 @@
 <template>
-    <AdminLayout page-title="Detail Pegawai" mobile-page-title="Detail">
-        <div class="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <AdminLayout page-title="Detail Pegawai" mobile-page-title="Detail Pegawai">
+        <div class="p-4 sm:p-6 bg-[#F5F6FA] min-h-screen">
             <!-- Breadcrumb -->
-            <nav class="flex mb-8" aria-label="Breadcrumb">
-                <ol class="inline-flex items-center space-x-2 md:space-x-3">
-                    <li class="inline-flex items-center">
-                        <Link :href="route('admin.dashboard')" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-[#dc2626] transition-colors duration-200 px-3 py-1 rounded-lg hover:bg-gray-100">
-                            <HomeIcon class="w-4 h-4 mr-2" />
+            <nav class="flex mb-6">
+                <ol class="flex items-center space-x-2 text-sm">
+                    <li>
+                        <Link :href="route('admin.dashboard')" class="text-gray-500 hover:text-gray-700 flex items-center">
+                            <HomeIcon class="h-4 w-4 mr-1" />
                             Dashboard
                         </Link>
                     </li>
-                    <li class="inline-flex items-center">
-                        <div class="flex items-center">
-                            <ChevronRightIcon class="w-4 h-4 text-gray-400" />
-                            <Link :href="route('admin.pegawai')" class="ml-2 text-sm font-medium text-gray-700 hover:text-[#dc2626] transition-colors duration-200 px-3 py-1 rounded-lg hover:bg-gray-100 md:ml-3">
-                                Data Pegawai
-                            </Link>
-                        </div>
+                    <li>
+                        <ChevronRightIcon class="h-4 w-4 text-gray-400" />
                     </li>
-                    <li aria-current="page">
-                        <div class="flex items-center">
-                            <ChevronRightIcon class="w-4 h-4 text-gray-400" />
-                            <span class="ml-2 text-sm font-medium text-gray-900 md:ml-3">Detail Pegawai</span>
-                        </div>
+                    <li>
+                        <Link :href="route('admin.pegawai')" class="text-gray-500 hover:text-gray-700">
+                            Pegawai
+                        </Link>
+                    </li>
+                    <li>
+                        <ChevronRightIcon class="h-4 w-4 text-gray-400" />
+                    </li>
+                    <li class="text-gray-900 font-medium">
+                        {{ pegawai.name }}
                     </li>
                 </ol>
             </nav>
 
             <!-- Success/Error Messages -->
-            <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
+            <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded">
                 {{ $page.props.flash.success }}
             </div>
-            <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+            <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded">
                 {{ $page.props.flash.error }}
             </div>
 
-            <!-- Page Header -->
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-                    <UserIcon class="text-red-600" />
-                    Detail Pegawai
-                </h1>
-                <p class="text-gray-600">Informasi lengkap pegawai POLDA TIK.</p>
-            </div>
-
-            <!-- Pegawai Detail Card -->
+            <!-- Profile Header -->
             <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
-                <div class="flex flex-col md:flex-row gap-8">
-                    <!-- Profile Picture -->
-                    <div class="flex-shrink-0">
-                        <img 
-                            :src="pegawai.profile_pict || '/images/profile.png'" 
-                            :alt="pegawai.name"
-                            class="w-32 h-32 rounded-full mx-auto ring-2 ring-red-500 object-cover"
-                            @error="handleImageError"
-                        />
-                    </div>
-                    
-                    <!-- User Info -->
-                    <div class="flex-grow">
-                        <h2 class="text-center md:text-left text-xl font-semibold text-gray-900">{{ pegawai.name }}</h2>
-                        <p class="text-center md:text-left text-gray-500">{{ pegawai.email }}</p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <div>
-                                <p class="text-sm text-gray-500">Bidang</p>
-                                <p class="font-medium">{{ pegawai.bidang?.nama_bidang || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Jabatan</p>
-                                <p class="font-medium">{{ pegawai.jabatan || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Pangkat</p>
-                                <p class="font-medium">{{ pegawai.pangkat || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">NIP/NRP</p>
-                                <p class="font-medium">{{ pegawai.nip || pegawai.nrp || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Nomor HP</p>
-                                <p class="font-medium">{{ pegawai.no_hp || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Status</p>
-                                <p class="font-medium">
-                                    <span 
-                                        v-if="pegawai.status === 'aktif'"
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700"
-                                    >
-                                        Aktif
-                                    </span>
-                                    <span 
-                                        v-else
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600"
-                                    >
-                                        Nonaktif
-                                    </span>
-                                </p>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <img 
+                                :src="pegawai.profile_pict_url || '/images/profile.png'" 
+                                :alt="pegawai.name"
+                                class="w-20 h-20 rounded-full ring-4 ring-red-500 object-cover"
+                                @error="handleImageError"
+                            />
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-xl font-bold text-gray-900">{{ pegawai.name }}</h2>
+                            <p class="text-gray-600">{{ pegawai.jabatan }}</p>
+                            <div class="mt-1">
+                                <span 
+                                    v-if="pegawai.status === 'aktif'"
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                >
+                                    Aktif
+                                </span>
+                                <span 
+                                    v-else
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                                >
+                                    Nonaktif
+                                </span>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col gap-3">
-                        <button 
-                            @click="editUser"
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                        >
-                            <EditIcon class="h-4 w-4 inline mr-2" />
-                            Edit
-                        </button>
-                        
+                    <div class="flex flex-wrap gap-2">
                         <button 
                             @click="toggleUserStatus"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
@@ -210,140 +160,19 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Edit User Modal -->
-        <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm z-50">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 animate-fadeIn">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-900">Edit Pegawai</h3>
-                    <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700">
-                        <XIcon class="h-5 w-5" />
-                    </button>
-                </div>
-                
-                <form @submit.prevent="updateUser">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                            <input
-                                v-model="editForm.name"
-                                type="text"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            />
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                v-model="editForm.email"
-                                type="email"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            />
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
-                                <input
-                                    v-model="editForm.no_hp"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Pangkat</label>
-                                <input
-                                    v-model="editForm.pangkat"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">NIP/NRP</label>
-                            <input
-                                v-model="nipOrNrp"
-                                type="text"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                :placeholder="hasNip ? 'NIP' : 'NRP'"
-                            />
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Bidang</label>
-                                <select
-                                    v-model="editForm.bidang_id"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                    required
-                                >
-                                    <option value="">Pilih Bidang</option>
-                                    <option v-for="bidang in bidangs" :key="bidang.id" :value="bidang.id">
-                                        {{ bidang.nama_bidang }}
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
-                                <input
-                                    v-model="editForm.jabatan"
-                                    type="text"
-                                    class="w-full border border-gray-300 rounded-lg p-2"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select
-                                v-model="editForm.status"
-                                class="w-full border border-gray-300 rounded-lg p-2"
-                                required
-                            >
-                                <option value="aktif">Aktif</option>
-                                <option value="nonaktif">Nonaktif</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-6 flex gap-3">
-                        <button
-                            type="button"
-                            @click="closeEditModal"
-                            class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="submit"
-                            class="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                        >
-                            Simpan
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </AdminLayout>
 </template>
 
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { 
   HomeIcon, 
   ChevronRightIcon, 
   UserIcon,
-  EditIcon,
   BanIcon,
   RefreshCwIcon,
-  XIcon,
   CheckIcon
 } from 'lucide-vue-next';
 
@@ -351,24 +180,6 @@ const props = defineProps({
     pegawai: Object,
     stats: Object,
     attendances: Array,
-    bidangs: Array,
-});
-
-// State
-const showEditModal = ref(false);
-
-// Edit form
-const editForm = useForm({
-    id: props.pegawai.id,
-    name: props.pegawai.name,
-    email: props.pegawai.email,
-    no_hp: props.pegawai.no_hp || '',
-    pangkat: props.pegawai.pangkat || '',
-    nrp: props.pegawai.nrp || '',
-    nip: props.pegawai.nip || '',
-    bidang_id: props.pegawai.bidang_id,
-    jabatan: props.pegawai.jabatan || '',
-    status: props.pegawai.status,
 });
 
 // Methods
@@ -438,27 +249,6 @@ const getStatusText = (attendance) => {
     }
 };
 
-const editUser = () => {
-    showEditModal.value = true;
-};
-
-const closeEditModal = () => {
-    showEditModal.value = false;
-};
-
-const updateUser = () => {
-    editForm.patch(route('admin.pegawai.update', editForm.id), {
-        onSuccess: () => {
-            closeEditModal();
-            // Reload the page to show updated data
-            router.reload();
-        },
-        onError: (errors) => {
-            console.log('Validation errors:', errors);
-        }
-    });
-};
-
 const toggleUserStatus = () => {
     if (confirm(`Apakah Anda yakin ingin ${props.pegawai.status === 'aktif' ? 'menonaktifkan' : 'mengaktifkan'} pegawai ini?`)) {
         router.patch(route('admin.pegawai.toggle-status', props.pegawai), {}, {
@@ -483,29 +273,6 @@ const resetUserPassword = () => {
 const handleImageError = (event) => {
     event.target.src = '/images/profile.png';
 };
-
-// Computed property to determine if user has NIP or NRP
-const hasNip = computed(() => {
-    return props.pegawai && props.pegawai.nip && props.pegawai.nip.trim() !== '';
-});
-
-// Computed property for NIP/NRP value
-const nipOrNrp = computed({
-    get() {
-        if (!props.pegawai) return '';
-        return hasNip.value ? props.pegawai.nip : props.pegawai.nrp;
-    },
-    set(value) {
-        if (!props.pegawai) return;
-        if (hasNip.value) {
-            editForm.nip = value;
-            editForm.nrp = '';
-        } else {
-            editForm.nrp = value;
-            editForm.nip = '';
-        }
-    }
-});
 </script>
 
 <style scoped>
