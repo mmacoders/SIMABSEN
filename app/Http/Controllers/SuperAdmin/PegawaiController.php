@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -79,10 +80,15 @@ class PegawaiController extends Controller
             }
         }
         
+        // Add profile picture URL if exists
+        if ($user->profile_pict) {
+            $user->profile_pict_url = Storage::url($user->profile_pict);
+        }
+        
         return Inertia::render('SuperAdmin/DetailPegawai', [
             'pegawai' => $user,
             'stats' => $stats,
-            'attendances' => $attendances,
+            'absensi' => $attendances,
         ]);
     }
     
@@ -90,7 +96,7 @@ class PegawaiController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
             'no_hp' => 'nullable|string|max:20',
             'pangkat' => 'nullable|string|max:255',
             'nip' => 'nullable|string|max:50',
@@ -109,7 +115,7 @@ class PegawaiController extends Controller
         }
         
         // Create user with default password
-        $user = User::create([
+        User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make('password'), // Default password
@@ -141,7 +147,7 @@ class PegawaiController extends Controller
             'nrp' => 'nullable|string|max:50',
             'jabatan' => 'nullable|string|max:255',
             'status' => 'required|in:aktif,nonaktif',
-            'profile_pict' => 'nullable|string|max:255'
+            'profile_pict' => 'nullable|image|max:2048' // Max 2MB
         ]);
         
         // Handle NIP/NRP logic - only one should be filled
@@ -153,6 +159,18 @@ class PegawaiController extends Controller
             $nrp = null;
         }
         
+        // Handle profile picture upload
+        if ($request->hasFile('profile_pict')) {
+            // Delete old profile picture if exists
+            if ($user->profile_pict) {
+                Storage::delete($user->profile_pict);
+            }
+            
+            // Store new profile picture
+            $path = $request->file('profile_pict')->store('profile_pictures', 'public');
+            $user->profile_pict = $path;
+        }
+        
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
@@ -162,7 +180,6 @@ class PegawaiController extends Controller
             'nrp' => $nrp,
             'jabatan' => $request->jabatan,
             'status' => $request->status,
-            'profile_pict' => $request->profile_pict,
         ]);
         
         return redirect()->back()->with('success', 'Data pegawai berhasil diperbarui.');
@@ -173,6 +190,11 @@ class PegawaiController extends Controller
         // Ensure user is a pegawai (user role)
         if ($user->role !== 'user') {
             abort(404);
+        }
+        
+        // Delete profile picture if exists
+        if ($user->profile_pict) {
+            Storage::delete($user->profile_pict);
         }
         
         $user->delete();
@@ -192,19 +214,5 @@ class PegawaiController extends Controller
         ]);
         
         return redirect()->back()->with('success', 'Status pegawai berhasil diubah.');
-    }
-    
-    public function resetPassword(User $user)
-    {
-        // Ensure user is a pegawai (user role)
-        if ($user->role !== 'user') {
-            abort(404);
-        }
-        
-        $user->update([
-            'password' => Hash::make('password'), // Default password
-        ]);
-        
-        return redirect()->back()->with('success', 'Password pegawai berhasil direset.');
     }
 }

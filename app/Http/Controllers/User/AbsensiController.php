@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class AbsensiController extends Controller
 {
@@ -35,7 +37,7 @@ class AbsensiController extends Controller
         // Check if user is in testing mode
         $testingModeDisabled = session('testing_mode_disabled', false);
         
-        return inertia('User/Absensi', [
+        return Inertia::render('User/Absensi', [
             'user' => $user,
             'todayAttendance' => $todayAttendance,
             'todayIzin' => $todayIzin,
@@ -53,15 +55,8 @@ class AbsensiController extends Controller
         // Get today's attendance record if exists
         $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
         
-        // Check if user has leave permission for today
-        $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
-            ->where('tanggal_selesai', '>=', date('Y-m-d'))
-            ->first();
-        
         return response()->json([
-            'attendance' => $todayAttendance,
-            'izin' => $todayIzin,
-            'can_check_in' => $this->canCheckIn($user),
+            'attendance' => $todayAttendance
         ]);
     }
     
@@ -309,259 +304,136 @@ class AbsensiController extends Controller
         
         // Validate request
         $request->validate([
-            'keterangan' => 'required|string|max:500',
             'jenis_izin' => 'required|in:penuh,parsial',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'keterangan' => 'required|string|max:500',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // 2MB max
         ]);
         
-        // Create or update attendance record with permission status
-        $attendance = Absensi::updateOrCreate(
-            ['user_id' => $user->id, 'tanggal' => $request->tanggal_mulai],
-            [
-                'keterangan' => $request->keterangan,
-                'status' => $request->jenis_izin === 'penuh' ? 'Izin (Valid)' : 'Izin',
-            ]
-        );
-        
-        // Create izin record
-        Izin::updateOrCreate(
-            [
-                'user_id' => $user->id, 
-                'tanggal' => $request->tanggal_mulai, // Include tanggal in search criteria
+        try {
+            // Handle file upload for full leave requests
+            $filePath = null;
+            if ($request->hasFile('file') && $request->jenis_izin === 'penuh') {
+                $file = $request->file('file');
+                $fileName = time() . '_' . $user->id . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('izin_files', $fileName, 'public');
+            }
+            
+            // Create izin record
+            $izin = Izin::create([
+                'user_id' => $user->id,
+                'tanggal' => $request->tanggal_mulai, // For backward compatibility
                 'tanggal_mulai' => $request->tanggal_mulai,
-                'tanggal_selesai' => $request->tanggal_selesai
-            ],
-            [
+                'tanggal_selesai' => $request->tanggal_selesai,
                 'jenis_izin' => $request->jenis_izin,
                 'keterangan' => $request->keterangan,
-                'disetujui_oleh' => 'System', // In a real application, this would be set by an admin
-            ]
-        );
-        
-        return redirect()->back()->with('success', 'Permintaan izin berhasil diajukan.');
-    }
-    
-    // Mark absent users - can be called via console command or API
-    public function markAbsentUsers()
-    {
-        // Get system settings for working hours
-        $systemSettings = SystemSetting::first();
-        $jamPulang = $systemSettings ? $systemSettings->jam_pulang : '17:00:00';
-        
-        // Get today's date
-        $today = Carbon::today()->format('Y-m-d');
-        
-        // Get all active users
-        $users = User::where('status', 'active')->get();
-        
-        $absentCount = 0;
-        
-        foreach ($users as $user) {
-            // Skip super admin users as they might not be required to attend
-            if ($user->role === 'superadmin') {
-                continue;
-            }
-            
-            // Check if user already has an attendance record for today
-            $attendance = Absensi::where('user_id', $user->id)
-                ->where('tanggal', $today)
-                ->first();
-                
-            // If no attendance record exists, mark as absent
-            if (!$attendance) {
-                Absensi::create([
-                    'user_id' => $user->id,
-                    'tanggal' => $today,
-                    'status' => 'alpha', // Absent
-                    'keterangan' => 'Tidak melakukan absensi masuk dan keluar',
-                ]);
-                
-                $absentCount++;
-                continue;
-            }
-            
-            // If attendance record exists but has no check-in or check-out
-            if (!$attendance->waktu_masuk && !$attendance->waktu_keluar) {
-                // Update status to absent if not already set
-                if ($attendance->status !== 'alpha') {
-                    $attendance->update([
-                        'status' => 'alpha',
-                        'keterangan' => 'Tidak melakukan absensi masuk dan keluar',
-                    ]);
-                    
-                    $absentCount++;
-                }
-                continue;
-            }
-            
-            // If user has partial attendance (either check-in or check-out but not both)
-            // And it's past the end of workday, mark as absent
-            $currentTime = Carbon::now();
-            $endOfWorkday = Carbon::today()->setTimeFromTimeString($jamPulang);
-            
-            if ($currentTime->greaterThan($endOfWorkday)) {
-                // If user only checked in but not out
-                if ($attendance->waktu_masuk && !$attendance->waktu_keluar) {
-                    // Check if this is not a partial leave case
-                    $isPartialLeave = $user->izins()
-                        ->where('tanggal_mulai', '<=', $today)
-                        ->where('tanggal_selesai', '>=', $today)
-                        ->where('jenis_izin', 'parsial')
-                        ->exists();
-                        
-                    if (!$isPartialLeave) {
-                        $attendance->update([
-                            'status' => 'alpha',
-                            'keterangan' => 'Tidak melakukan absensi keluar',
-                        ]);
-                        
-                        $absentCount++;
-                    }
-                }
-                // If user only checked out but not in (unusual case)
-                elseif (!$attendance->waktu_masuk && $attendance->waktu_keluar) {
-                    $attendance->update([
-                        'status' => 'alpha',
-                        'keterangan' => 'Tidak melakukan absensi masuk',
-                    ]);
-                    
-                    $absentCount++;
-                }
-            }
-        }
-        
-        // Return appropriate response based on request type
-        if (request()->wantsJson()) {
-            return response()->json([
-                'message' => 'Completed marking absent users',
-                'absent_count' => $absentCount
+                'disetujui_oleh' => null,
+                'status' => 'pending',
+                'catatan' => null,
+                'file_path' => $filePath, // Add file path if uploaded
             ]);
+            
+            Log::info('Permission request created', ['izin_id' => $izin->id, 'user_id' => $user->id]);
+            
+            return redirect()->back()->with('success', 'Permintaan izin berhasil diajukan dan sedang menunggu persetujuan.');
+        } catch (\Exception $e) {
+            Log::error('Permission request error', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengajukan izin. Silakan coba lagi.');
         }
-        
-        return redirect()->back()->with('success', "Completed marking absent users. {$absentCount} users marked as absent.");
     }
     
     // Check if user can check in
-    private function canCheckIn($user)
+    private function canCheckIn(User $user)
     {
+        // Check if user already has an attendance record for today with check-in time
+        $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
+        
+        // If user already checked in, they can't check in again
+        if ($todayAttendance && $todayAttendance->waktu_masuk) {
+            return false;
+        }
+        
         // Check if user has full leave permission for today
         $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
             ->where('tanggal_selesai', '>=', date('Y-m-d'))
             ->first();
-        
-        // If user has full leave, they cannot check in
+            
         if ($todayIzin && $todayIzin->jenis_izin === 'penuh') {
-            return false;
-        }
-        
-        // Check if user already has a completed attendance record
-        $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
-        if ($todayAttendance && $todayAttendance->waktu_masuk && $todayAttendance->waktu_keluar) {
-            return false;
+            return false; // User with full leave can't check in
         }
         
         return true;
     }
     
-    // Check if user can check out
-    private function canCheckOut($user)
+    private function canCheckOut(User $user)
     {
-        // Check if user has full leave permission for today
-        $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
-            ->where('tanggal_selesai', '>=', date('Y-m-d'))
-            ->first();
-        
-        // If user has full leave, they cannot check out
-        if ($todayIzin && $todayIzin->jenis_izin === 'penuh') {
-            return false;
-        }
-        
-        // Check if user has checked in
+        // Check if user has an attendance record for today with check-in time
         $todayAttendance = $user->absensis()->where('tanggal', date('Y-m-d'))->first();
+        
+        // If user hasn't checked in, they can't check out
         if (!$todayAttendance || !$todayAttendance->waktu_masuk) {
             return false;
         }
         
-        // If user already checked out, they cannot check out again
+        // If user already checked out, they can't check out again
         if ($todayAttendance->waktu_keluar) {
             return false;
         }
         
-        return true;
-    }
-    
-    // Validate if current time is within working hours
-    private function isWithinWorkingHours($type, $systemSettings)
-    {
-        // If no system settings, allow attendance (fallback)
-        if (!$systemSettings) {
-            return true;
-        }
-        
-        $currentTime = Carbon::now();
-        $currentHour = $currentTime->format('H:i:s');
-        
-        // For check-in, allow check-in from 1 hour before jam_masuk until 2 hours after jam_masuk
-        if ($type === 'checkin') {
-            $jamMasuk = $systemSettings->jam_masuk ?? '08:00:00';
+        // Check if user has partial leave and already completed it
+        $todayIzin = $user->izins()->where('tanggal_mulai', '<=', date('Y-m-d'))
+            ->where('tanggal_selesai', '>=', date('Y-m-d'))
+            ->first();
             
-            // Allow check-in from 1 hour before jam_masuk
-            $startCheckInTime = Carbon::createFromTimeString($jamMasuk)->subHour()->format('H:i:s');
-            
-            // Allow check-in until 2 hours after jam_masuk
-            $endCheckInTime = Carbon::createFromTimeString($jamMasuk)->addHours(2)->format('H:i:s');
-            
-            return $currentHour >= $startCheckInTime && $currentHour <= $endCheckInTime;
-        }
-        // For check-out, check if current time is between jam_masuk and 2 hours after jam_pulang
-        elseif ($type === 'checkout') {
-            $jamMasuk = $systemSettings->jam_masuk ?? '08:00:00';
-            $jamPulang = $systemSettings->jam_pulang ?? '17:00:00';
-            
-            // Allow check-out from jam_masuk onwards until 2 hours after jam_pulang
-            $endCheckOutTime = Carbon::createFromTimeString($jamPulang)->addHours(2)->format('H:i:s');
-            
-            return $currentHour >= $jamMasuk && $currentHour <= $endCheckOutTime;
+        if ($todayIzin && $todayIzin->jenis_izin === 'parsial' && 
+            $todayAttendance->status === 'Izin Parsial (Selesai)') {
+            return false; // User with completed partial leave can't check out again
         }
         
         return true;
     }
     
-    // Validate user location against office coordinates
     private function validateLocation($lat, $lng)
     {
-        // Get system settings for location validation
+        // Get system settings for office location
         $systemSettings = SystemSetting::first();
         
-        // Use system settings or default values
-        $poldaLat = $systemSettings ? $systemSettings->location_latitude : 0.524000504793017;
-        $poldaLng = $systemSettings ? $systemSettings->location_longitude : 123.06047523547292;
-        $radius = $systemSettings ? $systemSettings->location_radius : 100;
+        if (!$systemSettings) {
+            // If no system settings, consider location as valid
+            return 'valid';
+        }
         
-        // Convert to radians
-        $lat1 = deg2rad($lat);
-        $lng1 = deg2rad($lng);
-        $lat2 = deg2rad($poldaLat);
-        $lng2 = deg2rad($poldaLng);
+        // Get office coordinates
+        $officeLat = $systemSettings->location_latitude;
+        $officeLng = $systemSettings->location_longitude;
+        $radius = $systemSettings->location_radius;
+        
+        // Calculate distance using Haversine formula
+        $distance = $this->calculateDistance($lat, $lng, $officeLat, $officeLng);
+        
+        // Check if user is within the allowed radius
+        return $distance <= $radius ? 'valid' : 'invalid';
+    }
+    
+    private function calculateDistance($lat1, $lng1, $lat2, $lng2)
+    {
+        // Convert degrees to radians
+        $lat1 = deg2rad($lat1);
+        $lng1 = deg2rad($lng1);
+        $lat2 = deg2rad($lat2);
+        $lng2 = deg2rad($lng2);
         
         // Haversine formula
-        $deltaLat = $lat2 - $lat1;
-        $deltaLng = $lng2 - $lng1;
+        $latDelta = $lat2 - $lat1;
+        $lngDelta = $lng2 - $lng1;
         
-        $a = sin($deltaLat / 2) * sin($deltaLat / 2) +
-             cos($lat1) * cos($lat2) *
-             sin($deltaLng / 2) * sin($deltaLng / 2);
-        
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        
+        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+            cos($lat1) * cos($lat2) * pow(sin($lngDelta / 2), 2)));
+            
         // Earth's radius in meters
         $earthRadius = 6371000;
         
-        // Calculate distance
-        $distance = $earthRadius * $c;
-        
-        // Valid if within specified radius
-        return $distance <= $radius ? 'valid' : 'invalid';
+        return $angle * $earthRadius;
     }
 }

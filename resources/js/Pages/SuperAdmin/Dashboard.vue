@@ -10,7 +10,7 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1">
           <div class="flex items-center">
             <div class="p-4 rounded-xl bg-blue-100">
@@ -43,6 +43,18 @@
             <div class="ml-5">
               <p class="text-sm font-medium text-gray-600">Hadir Hari Ini</p>
               <p class="text-3xl font-bold text-[#dc2626] mt-1">{{ presentToday }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1">
+          <div class="flex items-center">
+            <div class="p-4 rounded-xl bg-orange-100">
+              <BellIcon class="h-8 w-8 text-orange-600" />
+            </div>
+            <div class="ml-5">
+              <p class="text-sm font-medium text-gray-600">Terlambat Hari Ini</p>
+              <p class="text-3xl font-bold text-[#dc2626] mt-1">{{ lateToday }}</p>
             </div>
           </div>
         </div>
@@ -119,6 +131,7 @@ const props = defineProps({
   totalUsers: Number,
   totalAdmins: Number,
   presentToday: Number,
+  lateToday: Number,
   absentToday: Number,
   jabatanStats: Array,
   weeklyAttendance: Object,
@@ -158,28 +171,18 @@ const attendanceChartOptions = computed(() => ({
     min: 0,
     labels: {
       formatter: function (val) {
-        return Math.floor(val);
+        return val.toFixed(0);
       }
     }
   },
   tooltip: {
     x: {
       format: 'dd/MM/yy'
-    },
+    }
   },
   legend: {
     position: 'top',
     horizontalAlign: 'right'
-  },
-  colors: ['#1976D2', '#4CAF50'],
-  fill: {
-    type: 'gradient',
-    gradient: {
-      shadeIntensity: 1,
-      opacityFrom: 0.7,
-      opacityTo: 0.3,
-      stops: [0, 90, 100]
-    }
   }
 }));
 
@@ -198,29 +201,25 @@ const jabatanChartOptions = computed(() => ({
   chart: {
     type: 'donut',
   },
-  labels: props.jabatanStats?.map(jabatan => jabatan.name) || [],
-  colors: ['#1976D2', '#4CAF50', '#FF9800', '#9C27B0'],
+  labels: props.jabatanStats?.map(stat => stat.name) || [],
   legend: {
     position: 'bottom'
   },
   dataLabels: {
     enabled: false
-  },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '70%'
-      }
-    }
   }
 }));
 
-const jabatanChartSeries = computed(() => 
-  props.jabatanStats?.map(jabatan => jabatan.total_users) || []
-);
+const jabatanChartSeries = computed(() => {
+  return props.jabatanStats?.map(stat => stat.total_users) || [];
+});
 
-// Logout function
-const logout = () => {
-  router.post(route('logout'));
+// Methods
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
+};
+
+const handleSidebarCollapse = (collapsed) => {
+  sidebarCollapsed.value = collapsed;
 };
 </script>

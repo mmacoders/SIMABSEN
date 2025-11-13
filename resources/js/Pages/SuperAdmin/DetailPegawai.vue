@@ -1,99 +1,80 @@
 <template>
-    <SuperAdminLayout 
-      page-title="Detail Pegawai"
-      mobile-page-title="Detail"
-    >
-        <div class="max-w-7xl mx-auto">
+    <SuperAdminLayout page-title="Detail Pegawai" mobile-page-title="Detail Pegawai">
+        <div class="p-4 sm:p-6 bg-gray-50 min-h-screen">
+            <!-- Breadcrumb -->
+            <nav class="flex mb-6">
+                <ol class="flex items-center space-x-2 text-sm">
+                    <li>
+                        <Link :href="route('superadmin.dashboard')" class="text-gray-500 hover:text-gray-700 flex items-center">
+                            <HomeIcon class="h-4 w-4 mr-1" />
+                            Dashboard
+                        </Link>
+                    </li>
+                    <li>
+                        <ChevronRightIcon class="h-4 w-4 text-gray-400" />
+                    </li>
+                    <li>
+                        <Link :href="route('superadmin.pegawai')" class="text-gray-500 hover:text-gray-700">
+                            Pegawai
+                        </Link>
+                    </li>
+                    <li>
+                        <ChevronRightIcon class="h-4 w-4 text-gray-400" />
+                    </li>
+                    <li class="text-gray-900 font-medium">
+                        {{ pegawai.name }}
+                    </li>
+                </ol>
+            </nav>
+
             <!-- Success/Error Messages -->
-            <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
+            <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded">
                 {{ $page.props.flash.success }}
             </div>
-            <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+            <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded">
                 {{ $page.props.flash.error }}
             </div>
 
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-                    <UserIcon class="text-red-600" />
-                    Detail Pegawai
-                </h1>
-                <p class="text-gray-600">Informasi lengkap pegawai POLDA TIK.</p>
-            </div>
-
-            <!-- Pegawai Detail Card -->
+            <!-- Profile Header -->
             <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
-                <div class="flex flex-col md:flex-row gap-8">
-                    <!-- Profile Picture -->
-                    <div class="flex-shrink-0">
-                        <img 
-                            :src="pegawai.profile_pict || '/images/default-profile.png'" 
-                            :alt="pegawai.name"
-                            class="w-32 h-32 rounded-full mx-auto ring-2 ring-red-500 object-cover"
-                            @error="handleImageError"
-                        />
-                    </div>
-                    
-                    <!-- User Info -->
-                    <div class="flex-grow">
-                        <h2 class="text-center md:text-left text-xl font-semibold text-gray-900">{{ pegawai.name }}</h2>
-                        <p class="text-center md:text-left text-gray-500">{{ pegawai.email }}</p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <div>
-                                <p class="text-sm text-gray-500">Bidang</p>
-                                <p class="font-medium">{{ pegawai.bidang?.nama_bidang || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Jabatan</p>
-                                <p class="font-medium">{{ pegawai.jabatan || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Pangkat</p>
-                                <p class="font-medium">{{ pegawai.pangkat || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">NIP/NRP</p>
-                                <p class="font-medium">{{ pegawai.nip || pegawai.nrp || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Nomor HP</p>
-                                <p class="font-medium">{{ pegawai.no_hp || '-' }}</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-sm text-gray-500">Status</p>
-                                <p class="font-medium">
-                                    <span 
-                                        v-if="pegawai.status === 'aktif'"
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700"
-                                    >
-                                        Aktif
-                                    </span>
-                                    <span 
-                                        v-else
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-600"
-                                    >
-                                        Nonaktif
-                                    </span>
-                                </p>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <img 
+                                :src="pegawai.profile_pict_url || '/images/profile.png'" 
+                                :alt="pegawai.name"
+                                class="w-20 h-20 rounded-full ring-4 ring-red-500 object-cover"
+                                @error="handleImageError"
+                            />
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-xl font-bold text-gray-900">{{ pegawai.name }}</h2>
+                            <p class="text-gray-600">{{ pegawai.jabatan }}</p>
+                            <div class="mt-1">
+                                <span 
+                                    v-if="pegawai.status === 'aktif'"
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800"
+                                >
+                                    Aktif
+                                </span>
+                                <span 
+                                    v-else
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800"
+                                >
+                                    Nonaktif
+                                </span>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
                         <button 
                             @click="editUser"
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                            class="px-4 py-2 bg-[#C62828] text-white rounded-lg hover:bg-[#b71c1c] transition flex items-center"
                         >
-                            <EditIcon class="h-4 w-4 inline mr-2" />
+                            <EditIcon class="h-4 w-4 mr-2" />
                             Edit
                         </button>
-                        
                         <button 
                             @click="toggleUserStatus"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
@@ -102,14 +83,6 @@
                             <BanIcon v-if="pegawai.status === 'aktif'" class="h-4 w-4 inline mr-2" />
                             <CheckIcon v-else class="h-4 w-4 inline mr-2" />
                             {{ pegawai.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}
-                        </button>
-                        
-                        <button 
-                            @click="resetUserPassword"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-                        >
-                            <RefreshCwIcon class="h-4 w-4 inline mr-2" />
-                            Reset Password
                         </button>
                     </div>
                 </div>
@@ -205,8 +178,10 @@ import {
     EditIcon,
     BanIcon,
     CheckIcon,
-    RefreshCwIcon
+    HomeIcon,
+    ChevronRightIcon
 } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
 
 // Get page props
 const page = usePage();
@@ -218,7 +193,8 @@ const props = defineProps({
 
 // Methods
 const editUser = () => {
-    router.get(route('superadmin.pegawai.edit', props.pegawai.id));
+    // Redirect to the main pegawai page where the user can be edited
+    router.visit(route('superadmin.pegawai'));
 };
 
 const toggleUserStatus = () => {
@@ -231,16 +207,6 @@ const toggleUserStatus = () => {
             router.reload();
         }
     });
-};
-
-const resetUserPassword = () => {
-    if (confirm('Apakah Anda yakin ingin mereset password pengguna ini?')) {
-        router.post(route('superadmin.pegawai.reset-password', props.pegawai.id), {}, {
-            onSuccess: () => {
-                alert('Password berhasil direset');
-            }
-        });
-    }
 };
 
 const handleImageError = (event) => {

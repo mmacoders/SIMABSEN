@@ -17,6 +17,7 @@ class Izin extends Model
         'disetujui_oleh',
         'status',
         'catatan',
+        'file_path', // Add file path field
     ];
 
     protected $casts = [

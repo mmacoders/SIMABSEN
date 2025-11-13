@@ -109,13 +109,6 @@
                       <EyeIcon class="h-5 w-5" />
                     </button>
                     <button 
-                      @click="resetPassword(user)"
-                      class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
-                      title="Reset Password"
-                    >
-                      <LockIcon class="h-5 w-5" />
-                    </button>
-                    <button 
                       @click="toggleUserStatus(user)"
                       class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
                       :title="user.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'"
@@ -386,17 +379,6 @@ const toggleUserStatus = (user) => {
       onSuccess: () => {
         // Reload the page to show updated data
         router.reload({ only: ['users'] });
-      }
-    });
-  }
-};
-
-const resetPassword = (user) => {
-  if (confirm('Apakah Anda yakin ingin mereset password pegawai ini?')) {
-    router.post(route('admin.pegawai.reset-password', user), {}, {
-      onSuccess: () => {
-        // Password reset success message will be shown via flash message
-        alert('Password berhasil direset');
       }
     });
   }

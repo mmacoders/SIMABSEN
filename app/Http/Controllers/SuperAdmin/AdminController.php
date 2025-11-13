@@ -26,15 +26,14 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
             'jabatan' => 'nullable|string|max:255',
         ]);
         
-        // Create admin user
+        // Create admin user with default password
         User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make('password'), // Default password
             'role' => 'admin',
             'jabatan' => $request->jabatan,
         ]);

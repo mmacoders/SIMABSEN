@@ -202,6 +202,7 @@ import { usePage } from '@inertiajs/vue3';
 
 // Get data from the controller
 const props = defineProps({
+  admin: Object,
   stats: Object,
   attendanceData: Array,
 });
@@ -224,6 +225,11 @@ const getCurrentDateFormatted = () => {
 const adminName = usePage().props.auth.user.name;
 
 const getStatusClass = (status) => {
+  // Check if status contains "Terlambat" with time difference
+  if (status && status.includes('Terlambat')) {
+    return 'bg-yellow-100 text-yellow-800';
+  }
+  
   switch (status) {
     case 'Hadir':
       return 'bg-green-100 text-green-800';

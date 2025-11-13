@@ -83,8 +83,8 @@
                             </div>
                             
                             <div>
-                                <p class="text-sm text-gray-500">Bidang</p>
-                                <p class="font-medium">{{ izin.user.bidang?.nama_bidang || '-' }}</p>
+                                <p class="text-sm text-gray-500">Jabatan</p>
+                                <p class="font-medium">{{ izin.user.jabatan || '-' }}</p>
                             </div>
                         </div>
                     </div>
@@ -111,6 +111,21 @@
                             <div>
                                 <p class="text-sm text-gray-500">Keterangan</p>
                                 <p class="font-medium">{{ izin.keterangan }}</p>
+                            </div>
+                            
+                            <!-- File Attachment for Full Leave Requests -->
+                            <div v-if="izin.jenis_izin === 'penuh' && izin.file_path">
+                                <p class="text-sm text-gray-500">Dokumen Pendukung</p>
+                                <div class="flex items-center mt-1">
+                                    <PaperclipIcon class="w-4 h-4 text-gray-500 mr-2" />
+                                    <a 
+                                        :href="route('admin.izin.download', izin.id)" 
+                                        target="_blank"
+                                        class="text-blue-600 hover:text-blue-800 underline flex items-center"
+                                    >
+                                        Lihat Dokumen
+                                    </a>
+                                </div>
                             </div>
                             
                             <div>
@@ -182,7 +197,7 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { HomeIcon, ChevronRightIcon, FileTextIcon, EditIcon, TrashIcon, CheckIcon, XIcon } from 'lucide-vue-next';
+import { HomeIcon, ChevronRightIcon, FileTextIcon, EditIcon, TrashIcon, CheckIcon, XIcon, PaperclipIcon } from 'lucide-vue-next';
 
 const props = defineProps({
     izin: Object,

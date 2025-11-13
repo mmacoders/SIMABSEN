@@ -124,30 +124,6 @@
                   >
                   <div v-if="profileForm.errors.jabatan" class="text-red-500 text-sm mt-1">{{ profileForm.errors.jabatan }}</div>
                 </div>
-
-                <!-- Password -->
-                <div>
-                  <label class="text-sm font-medium text-gray-700 block mb-2">Password Baru</label>
-                  <input
-                    type="password"
-                    v-model="profileForm.password"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
-                    :class="{ 'border-red-500': profileForm.errors.password }"
-                  >
-                  <div v-if="profileForm.errors.password" class="text-red-500 text-sm mt-1">{{ profileForm.errors.password }}</div>
-                </div>
-
-                <!-- Password Confirmation -->
-                <div>
-                  <label class="text-sm font-medium text-gray-700 block mb-2">Konfirmasi Password</label>
-                  <input
-                    type="password"
-                    v-model="profileForm.password_confirmation"
-                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#dc2626] focus:border-[#dc2626] focus:outline-none transition-colors duration-200 shadow-sm"
-                    :class="{ 'border-red-500': profileForm.errors.password_confirmation }"
-                  >
-                  <div v-if="profileForm.errors.password_confirmation" class="text-red-500 text-sm mt-1">{{ profileForm.errors.password_confirmation }}</div>
-                </div>
               </div>
 
               <!-- Action Buttons -->
@@ -219,8 +195,6 @@ const profileForm = useForm({
     no_hp: props.user.no_hp || '',
     jabatan: props.user.jabatan || '',
     profile_pict: null,
-    password: '',
-    password_confirmation: '',
     nip: props.user.nip || '',
     nrp: props.user.nrp || '',
     pangkat: props.user.pangkat || '',
@@ -274,7 +248,7 @@ const submitProfile = () => {
         pangkat: profileForm.pangkat || '',
     };
     
-    if (JSON.stringify(currentData) === JSON.stringify(originalData) && !profileForm.profile_pict && !profileForm.password) {
+    if (JSON.stringify(currentData) === JSON.stringify(originalData) && !profileForm.profile_pict) {
         Swal.fire({
             icon: 'info',
             title: 'Tidak ada perubahan',
@@ -321,8 +295,6 @@ const cancelChanges = () => {
     profileForm.nip = props.user.nip || '';
     profileForm.nrp = props.user.nrp || '';
     profileForm.pangkat = props.user.pangkat || '';
-    profileForm.password = '';
-    profileForm.password_confirmation = '';
     profileForm.profile_pict = null; // Also reset profile picture
     profilePreview.value = props.user.profile_pict_url || null;
 };

@@ -39,4 +39,22 @@ class HandleInertiaRequests extends Middleware
             ],
         ];
     }
+
+    /**
+     * Handle the incoming request.
+     */
+    public function handle($request, $next)
+    {
+        $response = parent::handle($request, $next);
+
+        // Add cache control headers to prevent caching of sensitive pages
+        // This helps ensure attendance data is always fresh across devices
+        if ($request->user()) {
+            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', '0');
+        }
+
+        return $response;
+    }
 }

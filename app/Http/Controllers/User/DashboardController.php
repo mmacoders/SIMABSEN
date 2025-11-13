@@ -5,13 +5,15 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         // Get the authenticated user
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Get today's attendance record if exists
         $todayAttendance = $user->absensis()
@@ -31,7 +33,7 @@ class DashboardController extends Controller
             ->where('tanggal_selesai', '>=', date('Y-m-d'))
             ->first();
         
-        return inertia('User/Dashboard', [
+        return Inertia::render('User/Dashboard', [
             'user' => $user,
             'todayAttendance' => $todayAttendance,
             'todayIzin' => $todayIzin,

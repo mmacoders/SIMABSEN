@@ -1,32 +1,23 @@
 <template>
-  <div class="flex min-h-screen bg-[#F5F6FA] font-sans">
+  <div class="flex h-screen bg-gray-50">
     <!-- Sidebar -->
     <SuperAdminSidebar 
-      :sidebar-open="sidebarOpen"
-      @update:sidebarOpen="sidebarOpen = $event"
-      @toggle-collapse="handleSidebarCollapse"
+      :open="sidebarOpen" 
+      :collapsed="sidebarCollapsed"
+      @toggle="toggleSidebar"
+      @collapse="handleSidebarCollapse"
     />
     
-    <!-- Main Content -->
-    <div class="flex-1" :class="sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'">
+    <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Header -->
       <SuperAdminHeader 
-        title="Kelola Pegawai"
-        :user-profile-pic="$page.props.auth.user.profile_pict_url"
         @toggle-sidebar="toggleSidebar"
       />
-
-      <main class="py-7">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          <!-- Success/Error Messages -->
-          <div v-if="$page.props.flash && $page.props.flash.success" class="mb-4 p-4 bg-green-100 text-green-800 rounded">
-            {{ $page.props.flash.success }}
-          </div>
-          <div v-if="$page.props.flash && $page.props.flash.error" class="mb-4 p-4 bg-red-100 text-red-800 rounded">
-            {{ $page.props.flash.error }}
-          </div>
-
-          <!-- Page Title + Search + Button -->
+      
+      <!-- Main Content -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+          <!-- Page Title + Search + Filter -->
           <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <!-- Kiri: Title + Description -->
             <div>
@@ -35,11 +26,10 @@
                 Manajemen Pegawai
               </h2>
               <p class="text-gray-600 mt-2">
-                Kelola data pegawai, lihat detail, dan atur status keaktifan pegawai.
+                Kelola data pegawai, tambah pegawai baru, dan atur status keaktifan pegawai.
               </p>
             </div>
-
-            <!-- Kanan: Search + Button -->
+            <!-- Kanan: Search + Filter + Add Button -->
             <div class="flex flex-col sm:flex-row gap-3">
               <!-- Search Bar -->
               <div class="relative">
@@ -54,6 +44,15 @@
                   @input="handleSearch"
                 />
               </div>
+              
+              <!-- Add Button -->
+              <button
+                @click="showCreateModal = true"
+                class="flex items-center gap-2 px-4 py-2 bg-[#C62828] text-white rounded-lg hover:bg-[#b71c1c] transition-colors duration-200 whitespace-nowrap"
+              >
+                <PlusCircleIcon class="h-5 w-5" />
+                Tambah Pegawai
+              </button>
             </div>
           </div>
 
@@ -132,13 +131,6 @@
                           title="Edit"
                         >
                           <EditIcon class="h-5 w-5" />
-                        </button>
-                        <button 
-                          @click="resetPassword(user)"
-                          class="text-gray-600 hover:text-gray-800 p-1 rounded transition-all duration-300"
-                          title="Reset Password"
-                        >
-                          <LockIcon class="h-5 w-5" />
                         </button>
                         <button 
                           @click="openDeleteModal(user)"
@@ -309,7 +301,7 @@
         </div>
       </Modal>
 
-      <!-- Detail View Modal (Following Admin style) -->
+      <!-- Detail View Modal (Following Pegawai style) -->
       <div v-if="showDetailModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div class="p-6">
@@ -398,13 +390,6 @@
                     Edit
                   </button>
                   <button
-                    @click="resetPassword(detailUser)"
-                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center"
-                  >
-                    <LockIcon class="h-4 w-4 mr-2" />
-                    Reset Password
-                  </button>
-                  <button
                     @click="closeDetailModal"
                     class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   >
@@ -434,7 +419,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import SuperAdminSidebar from '@/Components/SuperAdminSidebar.vue';
@@ -458,12 +443,6 @@ import {
 } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
-// Get page props
-const page = usePage();
-const props = defineProps({
-  users: Object,
-});
-
 // State
 const sidebarOpen = ref(true);
 const sidebarCollapsed = ref(false);
@@ -476,19 +455,24 @@ const editingUser = ref(null);
 const detailUser = ref({});
 const userToDelete = ref(null);
 
-// Search and pagination state
+// Search and filter state
 const searchQuery = ref('');
+
 const currentPage = ref(1);
 const usersPerPage = ref(10);
 
+const props = defineProps({
+  users: Object,
+});
+
+// Initialize form
 const userForm = useForm({
   name: '',
   email: '',
-  pangkat: '',
-  nrp: '',
-  nip: '',
   no_hp: '',
-
+  pangkat: '',
+  nip: '',
+  nrp: '',
   jabatan: '',
   status: 'aktif',
 });
@@ -653,16 +637,6 @@ const closeModal = () => {
   editingUser.value = null;
   userToDelete.value = null;
   userForm.reset();
-};
-
-const resetPassword = (user) => {
-  if (confirm('Apakah Anda yakin ingin mereset password pengguna ini?')) {
-    router.post(route('superadmin.pegawai.reset-password', user.id), {}, {
-      onSuccess: () => {
-        alert('Password berhasil direset');
-      }
-    });
-  }
 };
 
 const handleImageError = (event) => {

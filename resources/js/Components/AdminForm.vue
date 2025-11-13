@@ -27,32 +27,6 @@
       </div>
     </div>
 
-    <div v-if="!isEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <InputLabel for="password" value="Password" class="text-gray-700 font-medium" />
-        <TextInput
-          id="password"
-          type="password"
-          class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
-          v-model="form.password"
-          required
-        />
-        <InputError class="mt-2" :message="form.errors.password" />
-      </div>
-
-      <div>
-        <InputLabel for="password_confirmation" value="Konfirmasi Password" class="text-gray-700 font-medium" />
-        <TextInput
-          id="password_confirmation"
-          type="password"
-          class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#C62828] focus:ring-[#C62828]"
-          v-model="form.password_confirmation"
-          required
-        />
-        <InputError class="mt-2" :message="form.errors.password_confirmation" />
-      </div>
-    </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <InputLabel for="jabatan" value="Jabatan" class="text-gray-700 font-medium" />
@@ -124,8 +98,6 @@ const emit = defineEmits(['submit', 'cancel']);
 const form = useForm({
   name: props.admin?.name || '',
   email: props.admin?.email || '',
-  password: '',
-  password_confirmation: '',
   jabatan: props.admin?.jabatan || '',
   status: props.admin?.status || 'active'
 });

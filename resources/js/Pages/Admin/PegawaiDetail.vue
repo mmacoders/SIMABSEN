@@ -77,14 +77,6 @@
                             <CheckIcon v-else class="h-4 w-4 inline mr-2" />
                             {{ pegawai.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}
                         </button>
-                        
-                        <button 
-                            @click="resetUserPassword"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-                        >
-                            <RefreshCwIcon class="h-4 w-4 inline mr-2" />
-                            Reset Password
-                        </button>
                     </div>
                 </div>
             </div>
@@ -172,7 +164,6 @@ import {
   ChevronRightIcon, 
   UserIcon,
   BanIcon,
-  RefreshCwIcon,
   CheckIcon
 } from 'lucide-vue-next';
 
@@ -255,16 +246,6 @@ const toggleUserStatus = () => {
             onSuccess: () => {
                 // Reload the page to show updated data
                 router.reload();
-            }
-        });
-    }
-};
-
-const resetUserPassword = () => {
-    if (confirm('Apakah Anda yakin ingin mereset password pegawai ini?')) {
-        router.post(route('admin.pegawai.reset-password', props.pegawai), {}, {
-            onSuccess: () => {
-                // Password reset success message will be shown via flash message
             }
         });
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Absensi;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -13,6 +14,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // Get system settings for working hours
+        $systemSettings = SystemSetting::first();
+        $jamMasuk = $systemSettings ? $systemSettings->jam_masuk : '08:00:00';
+        
         // Get statistics
         $totalUsers = User::where('role', 'user')->count();
         $totalAdmins = User::where('role', 'admin')->count();
@@ -20,6 +25,10 @@ class DashboardController extends Controller
         // Get today's attendance summary
         $todayAttendances = Absensi::where('tanggal', date('Y-m-d'))->get();
         $presentToday = $todayAttendances->whereNotNull('waktu_masuk')->count();
+        $lateToday = $todayAttendances->filter(function ($attendance) use ($jamMasuk) {
+            // Check if late based on system settings
+            return $attendance->waktu_masuk && $attendance->waktu_masuk > $jamMasuk;
+        })->count();
         $absentToday = $totalUsers - $presentToday;
         
         // Get attendance by jabatan (instead of bidang)
@@ -32,6 +41,7 @@ class DashboardController extends Controller
             'totalUsers' => $totalUsers,
             'totalAdmins' => $totalAdmins,
             'presentToday' => $presentToday,
+            'lateToday' => $lateToday,
             'absentToday' => $absentToday,
             'jabatanStats' => $jabatanStats,
             'weeklyAttendance' => $weeklyAttendance,

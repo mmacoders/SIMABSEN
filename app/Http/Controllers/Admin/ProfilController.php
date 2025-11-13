@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class ProfilController extends Controller
 {
@@ -19,7 +20,7 @@ class ProfilController extends Controller
             $user->profile_pict_url = Storage::url($user->profile_pict);
         }
         
-        return inertia('Admin/UpdateProfil', [
+        return Inertia::render('Admin/UpdateProfil', [
             'user' => $user,
         ]);
     }

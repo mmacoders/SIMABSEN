@@ -40,10 +40,6 @@
                   <span class="text-gray-900 font-medium">{{ user.name }}</span>
                 </div>
                 <div class="flex justify-between items-center pb-3 border-b border-gray-100">
-                  <span class="text-gray-500">Bidang</span>
-                  <span class="text-gray-900 font-medium">{{ user.bidang?.nama_bidang || '-' }}</span>
-                </div>
-                <div class="flex justify-between items-center pb-3 border-b border-gray-100">
                   <span class="text-gray-500">Jabatan</span>
                   <span class="text-gray-900 font-medium">{{ user.jabatan || '-' }}</span>
                 </div>
@@ -326,17 +322,26 @@ const todayStatus = computed(() => {
 
 // Methods
 const getAttendanceStatusText = (attendance) => {
-  if (attendance.status === 'Izin (Valid)') {
+  // First check if this attendance record is associated with any leave permission
+  // This handles cases where the status field might not be properly set
+  if (attendance.status === 'Izin (Valid)' || attendance.status === 'izin' || attendance.status === 'Izin') {
     return 'Izin';
-  } else if (attendance.status === 'Izin Parsial (Check-in)') {
-    return 'Izin Parsial (Check-in)';
-  } else if (attendance.status === 'Izin Parsial (Selesai)') {
-    return 'Izin Parsial (Selesai)';
-  } else if (attendance.status === 'terlambat') {
+  } else if (attendance.status === 'Izin Parsial (Check-in)' || attendance.status === 'Izin Parsial (Selesai)') {
+    return attendance.status;
+  } else if (attendance.status === 'terlambat' || attendance.status === 'Terlambat') {
     return 'Terlambat';
-  } else if (attendance.waktu_masuk) {
+  } else if (attendance.status === 'alpha') {
+    return 'Tidak Hadir';
+  } else if (attendance.status === 'hadir' || attendance.status === 'Hadir') {
+    // For 'hadir' status, check if the user has actually checked in
+    return attendance.waktu_masuk ? 'Tepat Waktu' : 'Tidak Hadir';
+  } else if (attendance.waktu_masuk && attendance.waktu_keluar) {
     return 'Tepat Waktu';
+  } else if (attendance.waktu_masuk) {
+    return 'Sudah Check-in';
   } else {
+    // Check if there's an associated leave permission that might not be reflected in the status
+    // This is a fallback for cases where the status field wasn't properly updated
     return 'Tidak Hadir';
   }
 };
@@ -379,14 +384,21 @@ const getStatusClass = (status) => {
 };
 
 const getAttendanceStatusClass = (attendance) => {
-  if (attendance.status === 'Izin (Valid)' || attendance.status === 'Izin' || attendance.status === 'Izin Parsial (Check-in)' || attendance.status === 'Izin Parsial (Selesai)') {
+  // Handle all possible status values from the database
+  if (attendance.status === 'Izin (Valid)' || attendance.status === 'izin' || attendance.status === 'Izin' || 
+      attendance.status === 'Izin Parsial (Check-in)' || attendance.status === 'Izin Parsial (Selesai)') {
     return 'bg-gray-100 text-gray-700';
-  } else if (attendance.status === 'terlambat') {
+  } else if (attendance.status === 'terlambat' || attendance.status === 'Terlambat') {
     return 'bg-red-100 text-red-700';
-  } else if (attendance.waktu_masuk && !attendance.status) {
-    return 'bg-green-100 text-green-700';
+  } else if (attendance.status === 'hadir' || attendance.status === 'Hadir') {
+    // For 'hadir' status, check if the user has actually checked in
+    return attendance.waktu_masuk ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
+  } else if (attendance.waktu_masuk && attendance.waktu_keluar) {
+    return 'bg-green-100 text-green-700'; // Completed attendance
+  } else if (attendance.waktu_masuk) {
+    return 'bg-blue-100 text-blue-700'; // Check-in only
   } else {
-    return 'bg-gray-100 text-gray-700';
+    return 'bg-gray-100 text-gray-700'; // No attendance or absent
   }
 };
 </script>

@@ -7,7 +7,9 @@ use App\Models\Izin;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class IzinController extends Controller
 {
@@ -68,10 +70,19 @@ class IzinController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'jenis_izin' => 'required|in:penuh,parsial',
             'keterangan' => 'required|string|max:500',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Add file validation
         ]);
         
         // Check if the admin can create izin for this user (admin can create for any user)
         $user = User::find($request->user_id);
+        
+        // Handle file upload
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('izin_files', $fileName, 'public');
+        }
         
         Izin::create([
             'user_id' => $request->user_id,
@@ -79,6 +90,7 @@ class IzinController extends Controller
             'tanggal_selesai' => $request->tanggal_selesai,
             'jenis_izin' => $request->jenis_izin,
             'keterangan' => $request->keterangan,
+            'file_path' => $filePath, // Save file path
             'status' => 'approved', // Admin can directly approve
             'disetujui_oleh' => Auth::user()->name,
         ]);
@@ -138,7 +150,21 @@ class IzinController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'jenis_izin' => 'required|in:penuh,parsial',
             'keterangan' => 'required|string|max:500',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // Add file validation
         ]);
+        
+        // Handle file upload
+        $filePath = $izin->file_path; // Keep existing file path
+        if ($request->hasFile('file')) {
+            // Delete old file if exists
+            if ($izin->file_path) {
+                Storage::disk('public')->delete($izin->file_path);
+            }
+            
+            $file = $request->file('file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('izin_files', $fileName, 'public');
+        }
         
         // Admin can update any izin
         $izin->update([
@@ -147,6 +173,7 @@ class IzinController extends Controller
             'tanggal_selesai' => $request->tanggal_selesai,
             'jenis_izin' => $request->jenis_izin,
             'keterangan' => $request->keterangan,
+            'file_path' => $filePath, // Update file path
         ]);
         
         return redirect()->route('admin.izin')->with('success', 'Permintaan izin berhasil diperbarui.');
@@ -155,8 +182,23 @@ class IzinController extends Controller
     public function destroy(Izin $izin)
     {
         // Admin can delete any izin
+        // Delete file if exists
+        if ($izin->file_path) {
+            Storage::disk('public')->delete($izin->file_path);
+        }
+        
         $izin->delete();
         
         return redirect()->route('admin.izin')->with('success', 'Permintaan izin berhasil dihapus.');
+    }
+    
+    // Method to download izin file
+    public function downloadFile(Izin $izin)
+    {
+        if (!$izin->file_path) {
+            abort(404, 'File tidak ditemukan.');
+        }
+        
+        return response()->download(Storage::disk('public')->path($izin->file_path));
     }
 }
