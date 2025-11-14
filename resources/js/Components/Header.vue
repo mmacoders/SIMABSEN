@@ -1,5 +1,5 @@
 <template>
-  <header class="top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 shadow-sm backdrop-blur-md z-40 flex items-center justify-between px-4 md:px-6 sticky">
+  <header class="top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 shadow-sm backdrop-blur-md z-40 flex items-center justify-between px-4 md:px-6 sticky ml-0 md:ml-20 lg:ml-64 transition-all duration-300 ease-in-out">
     <!-- Left Section -->
     <div class="flex items-center gap-3 md:gap-4">
       <!-- Sidebar Toggle Button -->
@@ -47,7 +47,7 @@
           class="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30 rounded-lg p-1 transition-colors duration-200"
           aria-label="User menu"
         >
-          <div v-if="user.profile_pict" class="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden">
+          <div v-if="user && user.profile_pict" class="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden">
             <img 
               :src="user.profile_pict" 
               :alt="user.name + ' avatar'" 
@@ -58,7 +58,7 @@
           <div v-else class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center text-gray-700 font-semibold text-sm">
             {{ userInitials }}
           </div>
-          <span class="hidden md:inline text-gray-700 font-medium text-sm">{{ user.name }}</span>
+          <span v-if="user" class="hidden md:inline text-gray-700 font-medium text-sm">{{ user.name }}</span>
           <ChevronDownIcon 
             class="hidden md:inline w-4 h-4 text-gray-500 transition-transform duration-200" 
             :class="{ 'rotate-180': isDropdownOpen }"
@@ -72,8 +72,8 @@
           :class="{ 'opacity-100 scale-100': isDropdownOpen, 'opacity-0 scale-95': !isDropdownOpen }"
         >
           <div class="px-4 py-2 border-b border-gray-100">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ user.name }}</p>
-            <p class="text-xs text-gray-500 truncate">{{ user.email || 'user@example.com' }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate">{{ user?.name }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ user?.email || 'user@example.com' }}</p>
           </div>
           <a 
             href="/user/profil" 
